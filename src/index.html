@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>光合作用与呼吸作用 · 总光合与净光合</title>
+<style>
+/*__CSS__*/
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="hd">
+    <div class="hd-title">
+      <h1>光合作用与呼吸作用</h1>
+      <p>总光合 &nbsp;·&nbsp; 呼吸消耗 &nbsp;·&nbsp; 净光合 &nbsp;&nbsp;|&nbsp;&nbsp; 高三复习 · 交互演示</p>
+    </div>
+    <div class="hd-tools">
+      <div class="seg" id="modeSeg">
+        <button data-mode="demo" class="on">演示态</button>
+        <button data-mode="lab">探究态</button>
+      </div>
+      <button class="ghost-btn" id="btnReset" title="回到教材标准状态（空格）">重置</button>
+      <button class="ghost-btn" id="btnHelp" title="操作说明">?</button>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="stage" id="stage">
+      <canvas id="gl"></canvas>
+
+      <div class="hud hud-sensor" id="sensorBox">
+        <div class="hud-cap">同化箱内读数</div>
+        <div class="srow">
+          <span class="sname">CO₂</span>
+          <span class="sval" id="co2Val">400</span>
+          <span class="sunit">ppm</span>
+          <span class="strend" id="co2Trend">—</span>
+        </div>
+        <div class="srow">
+          <span class="sname">O₂</span>
+          <span class="sval" id="o2Val">20.9</span>
+          <span class="sunit">%</span>
+          <span class="strend" id="o2Trend">—</span>
+        </div>
+      </div>
+
+      <div class="hud hud-legend">
+        <div class="lg"><i style="background:#6ee7c4"></i>O₂ 释放</div>
+        <div class="lg"><i style="background:#ffb454"></i>CO₂ 吸收</div>
+        <div class="lg"><i style="background:#5cb8ff"></i>H₂O 上行</div>
+        <div class="lg"><i style="background:#ffd980"></i>有机物 下行</div>
+        <div class="lg"><i style="background:#ff7a45"></i>呼吸 CO₂</div>
+      </div>
+
+      <div class="stage-hint">拖动旋转 &nbsp;·&nbsp; 滚轮缩放 &nbsp;·&nbsp; 双击复位视角</div>
+    </section>
+
+    <aside class="side">
+
+      <div class="panel ledger">
+        <div class="p-cap">三量对账<span class="p-sub" id="ledgerSub">25 ℃ · 400 ppm · 21% O₂</span></div>
+        <div class="eqrow">
+          <div class="cell c-gross">
+            <div class="cv" id="vGross">0.0</div>
+            <div class="cl">总光合</div>
+          </div>
+          <div class="op">−</div>
+          <div class="cell c-resp">
+            <div class="cv" id="vResp">0.0</div>
+            <div class="cl">呼吸</div>
+          </div>
+          <div class="op">=</div>
+          <div class="cell c-net">
+            <div class="cv" id="vNet">0.0</div>
+            <div class="cl">净光合</div>
+          </div>
+        </div>
+        <div class="unit-line">单位：μmol CO₂ · m⁻² · s⁻¹</div>
+        <div class="bipolar">
+          <div class="bp-track"><div class="bp-zero"></div><div class="bp-fill" id="bpFill"></div></div>
+          <div class="bp-lab"><span>净 &lt; 0</span><span class="bp-zero-lab">0</span><span>净 &gt; 0</span></div>
+        </div>
+        <div class="ledger-note" id="ledgerNote">拖动光强，看三个量的关系</div>
+      </div>
+
+      <div class="panel chartp">
+        <div class="p-cap">
+          光强 — 速率曲线
+          <span class="p-sub" id="chartSub">实线 净光合 &nbsp; 虚线 总光合</span>
+        </div>
+        <canvas id="chart"></canvas>
+        <div class="chart-foot" id="chartFoot">曲线随拖动逐步生成</div>
+      </div>
+
+      <div class="panel taskp" id="taskPanel" hidden>
+        <div class="p-cap">探究任务<span class="p-sub">点开逐条完成</span></div>
+        <div class="tasklist" id="taskList"></div>
+      </div>
+
+    </aside>
+  </main>
+
+  <section class="controls" id="controls">
+    <div class="ctl ctl-light">
+      <div class="ctl-top"><label>光照强度</label><span class="kbd">主变量</span></div>
+      <div class="ctl-body">
+        <input type="range" id="sldLight" min="0" max="2000" step="5" value="800">
+        <output id="outLight">800 <i>μmol·m⁻²·s⁻¹</i></output>
+      </div>
+    </div>
+
+    <div class="ctl" id="ctlTemp">
+      <div class="ctl-top"><label>温度</label></div>
+      <div class="ctl-body" id="tempWrap">
+        <input type="range" id="sldTemp" min="10" max="40" step="1" value="25">
+        <output id="outTemp">25 <i>℃</i></output>
+      </div>
+      <div class="pills" id="tempPills">
+        <button data-t="15">15 ℃</button>
+        <button data-t="25" class="on">25 ℃</button>
+        <button data-t="35">35 ℃</button>
+      </div>
+    </div>
+
+    <div class="ctl ctl-lab">
+      <div class="ctl-top"><label>CO₂ 浓度</label></div>
+      <div class="ctl-body">
+        <input type="range" id="sldCO2" min="150" max="1200" step="10" value="400">
+        <output id="outCO2">400 <i>ppm</i></output>
+      </div>
+    </div>
+
+    <div class="ctl ctl-lab">
+      <div class="ctl-top"><label>O₂ 浓度</label></div>
+      <div class="ctl-body">
+        <input type="range" id="sldO2" min="5" max="50" step="1" value="21">
+        <output id="outO2">21 <i>%</i></output>
+      </div>
+    </div>
+
+    <div class="ctl ctl-plant">
+      <div class="ctl-top"><label>计入根茎呼吸</label></div>
+      <div class="ctl-body">
+        <div class="toggle" id="tgWhole">
+          <button data-v="leaf">只看叶片</button>
+          <button data-v="whole" class="on">整株</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="ctl ctl-preset">
+      <div class="ctl-top"><label>快捷位置</label><span class="kbd">空格复位</span></div>
+      <div class="pills presets">
+        <button data-p="0">黑暗</button>
+        <button data-p="weak">弱光</button>
+        <button data-p="comp">光补偿点</button>
+        <button data-p="sat">光饱和</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="narration" id="narration">
+    <div class="nr-tag" id="nrTag">当前状态</div>
+    <div class="nr-text" id="nrText">拖动下方光强滑杆，观察这株植物体内三条流量的变化。</div>
+  </section>
+
+</div>
+
+<div class="help-mask" id="helpMask" hidden>
+  <div class="help-box">
+    <h3>怎么用这个页面</h3>
+    <ul>
+      <li><b>拖动光强</b>：植物、粒子、曲线、箱内读数会同时响应。曲线随你拖过的最大光强逐步长出来。</li>
+      <li><b>快捷位置</b>：一键跳到「黑暗 / 弱光 / 光补偿点 / 光饱和」，上课时不用慢慢找。</li>
+      <li><b>看不清植物内部</b>：拖动旋转、滚轮缩放，双击回到初始视角。</li>
+      <li><b>演示态 / 探究态</b>：演示态只留光强与温度三档；探究态开放四个变量，并给出任务卡。</li>
+      <li><b>空格键</b>：任何时候回到教材标准状态（800 μmol、25 ℃、400 ppm、21% O₂）。</li>
+    </ul>
+    <button id="helpClose">知道了</button>
+  </div>
+</div>
+
+<script>
+/*__THREE__*/
+</script>
+<script>
+/*__APP__*/
+</script>
+</body>
+</html>
