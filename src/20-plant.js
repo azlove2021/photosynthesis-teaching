@@ -30,13 +30,13 @@ function makeLeafTexture() {
 
   /* 斑驳 */
   for (let i = 0; i < 1400; i++) {
-    const x = Math.random() * W, y = Math.random() * H;
-    const r = 8 + Math.random() * 54;
-    g.fillStyle = Math.random() > 0.52
-      ? 'rgba(166,214,116,' + (0.025 + Math.random() * 0.05).toFixed(3) + ')'
-      : 'rgba(16,48,18,' + (0.025 + Math.random() * 0.06).toFixed(3) + ')';
+    const x = RNG() * W, y = RNG() * H;
+    const r = 8 + RNG() * 54;
+    g.fillStyle = RNG() > 0.52
+      ? 'rgba(166,214,116,' + (0.025 + RNG() * 0.05).toFixed(3) + ')'
+      : 'rgba(16,48,18,' + (0.025 + RNG() * 0.06).toFixed(3) + ')';
     g.beginPath();
-    g.ellipse(x, y, r, r * (0.4 + Math.random() * 0.9), Math.random() * 3.14, 0, 6.2832);
+    g.ellipse(x, y, r, r * (0.4 + RNG() * 0.9), RNG() * 3.14, 0, 6.2832);
     g.fill();
   }
 
@@ -52,8 +52,8 @@ function makeLeafTexture() {
   for (let i = 0; i < 17; i++) {
     const y0 = 44 + i * 70;
     for (const sign of [1, -1]) {
-      const reach = (232 + Math.random() * 42);
-      const drop = 92 + Math.random() * 34;
+      const reach = (232 + RNG() * 42);
+      const drop = 92 + RNG() * 34;
       const y1 = y0 + (sign > 0 ? 0 : 34);
       veinGlow(function () {
         g.moveTo(midX, y1);
@@ -79,9 +79,9 @@ function makeLeafTexture() {
   /* 细网脉 */
   g.strokeStyle = 'rgba(190,228,144,0.20)';
   for (let i = 0; i < 620; i++) {
-    const x = Math.random() * W, y = Math.random() * H;
-    const a = Math.random() * 6.2832, L = 10 + Math.random() * 32;
-    g.lineWidth = 0.6 + Math.random() * 0.5;
+    const x = RNG() * W, y = RNG() * H;
+    const a = RNG() * 6.2832, L = 10 + RNG() * 32;
+    g.lineWidth = 0.6 + RNG() * 0.5;
     g.beginPath();
     g.moveTo(x, y);
     g.lineTo(x + Math.cos(a) * L, y + Math.sin(a) * L * 0.45);
@@ -90,10 +90,10 @@ function makeLeafTexture() {
 
   /* 气孔 */
   for (let i = 0; i < 2200; i++) {
-    const x = Math.random() * W, y = Math.random() * H;
-    g.fillStyle = 'rgba(14,50,20,' + (0.05 + Math.random() * 0.10).toFixed(3) + ')';
+    const x = RNG() * W, y = RNG() * H;
+    g.fillStyle = 'rgba(14,50,20,' + (0.05 + RNG() * 0.10).toFixed(3) + ')';
     g.beginPath();
-    g.ellipse(x, y, 1.7, 1.0, Math.random() * 3.14, 0, 6.2832);
+    g.ellipse(x, y, 1.7, 1.0, RNG() * 3.14, 0, 6.2832);
     g.fill();
   }
 
@@ -151,9 +151,9 @@ function makeLeafBump() {
   g.strokeStyle = '#fbfbfb';
   g.stroke();
   for (let i = 0; i < 900; i++) {
-    const x = Math.random() * W, y = Math.random() * H;
-    g.fillStyle = 'rgba(255,255,255,' + (0.04 + Math.random() * 0.09).toFixed(3) + ')';
-    g.fillRect(x, y, 1 + Math.random() * 2, 1);
+    const x = RNG() * W, y = RNG() * H;
+    g.fillStyle = 'rgba(255,255,255,' + (0.04 + RNG() * 0.09).toFixed(3) + ')';
+    g.fillRect(x, y, 1 + RNG() * 2, 1);
   }
   return c;
 }
@@ -172,20 +172,20 @@ function makeStemTexture() {
   g.fillRect(0, 0, W, H);
 
   for (let i = 0; i < 220; i++) {
-    const x = Math.random() * W;
+    const x = RNG() * W;
     g.beginPath();
     g.moveTo(x, 0);
-    g.lineTo(x + (Math.random() - 0.5) * 14, H);
-    g.lineWidth = 0.6 + Math.random() * 3.0;
-    g.strokeStyle = Math.random() > 0.5
-      ? 'rgba(158,198,116,' + (0.05 + Math.random() * 0.16).toFixed(3) + ')'
-      : 'rgba(12,30,10,' + (0.05 + Math.random() * 0.18).toFixed(3) + ')';
+    g.lineTo(x + (RNG() - 0.5) * 14, H);
+    g.lineWidth = 0.6 + RNG() * 3.0;
+    g.strokeStyle = RNG() > 0.5
+      ? 'rgba(158,198,116,' + (0.05 + RNG() * 0.16).toFixed(3) + ')'
+      : 'rgba(12,30,10,' + (0.05 + RNG() * 0.18).toFixed(3) + ')';
     g.stroke();
   }
   /* 皮孔 */
   for (let i = 0; i < 130; i++) {
-    const x = Math.random() * W, y = Math.random() * H;
-    g.fillStyle = 'rgba(206,228,166,' + (0.05 + Math.random() * 0.14).toFixed(3) + ')';
+    const x = RNG() * W, y = RNG() * H;
+    g.fillStyle = 'rgba(206,228,166,' + (0.05 + RNG() * 0.14).toFixed(3) + ')';
     g.beginPath();
     g.ellipse(x, y, 1.6, 4.2, 0, 0, 6.2832);
     g.fill();
@@ -263,6 +263,38 @@ world.add(plant);
 const leafRecords = [];
 const respireRecords = [];
 
+/* --- 叶片透光 ---
+   叶片不是不透明薄板：光会穿进叶肉再从边缘透出来。没有这一层，
+   逆光和侧光下叶子就是一片死黑的剪影，怎么调灯都不像真的。
+   用掠射角的菲涅尔边缘加一层自发光近似次表面散射，
+   成本只有一个 pow()，但叶子立刻“有厚度”了。 */
+const LEAF_TRANS = {
+  uTransColor: { value: new THREE.Color(0x8ad98e) },
+  uTransAmt: { value: 0.030 }
+};
+
+function withLeafGlow(mat) {
+  mat.onBeforeCompile = function (shader) {
+    shader.uniforms.uTransColor = LEAF_TRANS.uTransColor;
+    shader.uniforms.uTransAmt = LEAF_TRANS.uTransAmt;
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>',
+        '#include <common>\nuniform vec3 uTransColor;\nuniform float uTransAmt;')
+      .replace('#include <dithering_fragment>', [
+        '#include <dithering_fragment>',
+        '{',
+        '  vec3 vdir = normalize(vViewPosition);',
+        '  float edge = 1.0 - clamp(abs(dot(normalize(normal), vdir)), 0.0, 1.0);',
+        '  float rim = pow(edge, 2.4);',
+        '  gl_FragColor.rgb += uTransColor * uTransAmt * rim * diffuseColor.rgb * 2.2;',
+        '}'
+      ].join('\n'));
+  };
+  /* 同一份着色器程序在所有叶片间共享，避免每片叶子重新编译 */
+  mat.customProgramCacheKey = function () { return 'leafGlow'; };
+  return mat;
+}
+
 /* --- 花盆 --- */
 (function buildPot() {
   const potMat = new THREE.MeshPhysicalMaterial({
@@ -291,11 +323,11 @@ const respireRecords = [];
   sg.fillStyle = '#3a2a1c';
   sg.fillRect(0, 0, 256, 256);
   for (let i = 0; i < 3200; i++) {
-    const x = Math.random() * 256, y = Math.random() * 256;
-    sg.fillStyle = Math.random() > 0.5
-      ? 'rgba(92,68,42,' + (0.18 + Math.random() * 0.5).toFixed(2) + ')'
-      : 'rgba(22,14,9,' + (0.18 + Math.random() * 0.5).toFixed(2) + ')';
-    sg.fillRect(x, y, 1 + Math.random() * 3, 1 + Math.random() * 3);
+    const x = RNG() * 256, y = RNG() * 256;
+    sg.fillStyle = RNG() > 0.5
+      ? 'rgba(92,68,42,' + (0.18 + RNG() * 0.5).toFixed(2) + ')'
+      : 'rgba(22,14,9,' + (0.18 + RNG() * 0.5).toFixed(2) + ')';
+    sg.fillRect(x, y, 1 + RNG() * 3, 1 + RNG() * 3);
   }
   const soilTex = new THREE.CanvasTexture(soilC);
   soilTex.encoding = THREE.sRGBEncoding;
@@ -317,15 +349,15 @@ const respireRecords = [];
   const N = 11;
   for (let i = 0; i < N; i++) {
     const a = (i / N) * Math.PI * 2 + 0.25;
-    const spread = 0.09 + Math.random() * 0.22;
+    const spread = 0.09 + RNG() * 0.22;
     const pts = [];
-    const depth = 0.28 + Math.random() * 0.16;
+    const depth = 0.28 + RNG() * 0.16;
     for (let k = 0; k <= 5; k++) {
       const t = k / 5;
       const r = spread * t;
       pts.push(new THREE.Vector3(
         Math.cos(a + t * 0.9) * r,
-        0.475 - depth * t * (0.7 + Math.random() * 0.3),
+        0.475 - depth * t * (0.7 + RNG() * 0.3),
         Math.sin(a + t * 0.9) * r
       ));
     }
@@ -391,7 +423,7 @@ function addLeaf(pivotPos, azimuth, tilt, len, wid, seed) {
   pivot.rotation.y = azimuth;
   plant.add(pivot);
 
-  const pet = 0.09 + Math.random() * 0.08;
+  const pet = 0.09 + RNG() * 0.08;
   const petiole = new THREE.Mesh(
     new THREE.CylinderGeometry(0.0055, 0.0082, pet, 6, 1),
     new THREE.MeshStandardMaterial({ color: 0x5a8a3c, roughness: 0.8 })
@@ -403,25 +435,25 @@ function addLeaf(pivotPos, azimuth, tilt, len, wid, seed) {
   const leafPivot = new THREE.Group();
   leafPivot.position.y = pet;
   leafPivot.rotation.x = -tilt;
-  leafPivot.rotation.z = (Math.random() - 0.5) * 0.30;
+  leafPivot.rotation.z = (RNG() - 0.5) * 0.30;
   pivot.add(leafPivot);
 
-  const geo = makeLeafGeometry(len, wid, 0.15, 0.26, (Math.random() - 0.5) * 0.5);
-  const mat = new THREE.MeshStandardMaterial({
+  const geo = makeLeafGeometry(len, wid, 0.15, 0.26, (RNG() - 0.5) * 0.5);
+  const mat = withLeafGlow(new THREE.MeshStandardMaterial({
     map: leafTex,
     bumpMap: leafBumpTex,
     bumpScale: 0.018,
-    roughness: 0.46 + Math.random() * 0.14,
+    roughness: 0.46 + RNG() * 0.14,
     metalness: 0.0,
     side: THREE.DoubleSide,
     color: new THREE.Color().setHSL(
-      0.252 + (Math.random() - 0.5) * 0.024,
-      0.28 + Math.random() * 0.16,
-      0.72 + Math.random() * 0.16
+      0.252 + (RNG() - 0.5) * 0.024,
+      0.28 + RNG() * 0.16,
+      0.72 + RNG() * 0.16
     ),
     emissive: new THREE.Color(0x2f8a4e),
     emissiveIntensity: 0.0
-  });
+  }));
   const leaf = new THREE.Mesh(geo, mat);
   leaf.castShadow = true;
   leaf.receiveShadow = true;
@@ -432,7 +464,10 @@ function addLeaf(pivotPos, azimuth, tilt, len, wid, seed) {
     baseX: leafPivot.rotation.x,
     baseZ: leafPivot.rotation.z,
     phase: seed * 6.2832,
-    freq: 0.5 + Math.random() * 0.4,
+    freq: 0.5 + RNG() * 0.4,
+    /* 高度决定风到达的先后（相位差）与柔韧度：梢头最软，摆幅最大 */
+    nodeY: pivotPos.y,
+    flex: 0.55 + clamp((pivotPos.y - 0.7) / 2.0, 0, 1) * 0.85,
     len, wid
   });
   respireRecords.push({ type: 'leaf', obj: leaf, local: new THREE.Vector3(0, len * 0.45, 0) });
@@ -467,9 +502,9 @@ function addLeaf(pivotPos, azimuth, tilt, len, wid, seed) {
     for (let i = 0; i < nLeaf; i++) {
       const d = b.len * (0.32 + i * 0.21);
       const nodeP = baseV.clone().add(dir.clone().multiplyScalar(d));
-      const az = b.az + i * 1.72 + Math.random() * 0.9;
-      const len = 0.44 + Math.random() * 0.18 - i * 0.02;
-      addLeaf(nodeP, az, 0.86 + Math.random() * 0.62, len, len * 0.60, Math.random());
+      const az = b.az + i * 1.72 + RNG() * 0.9;
+      const len = 0.44 + RNG() * 0.18 - i * 0.02;
+      addLeaf(nodeP, az, 0.86 + RNG() * 0.62, len, len * 0.60, RNG());
     }
   });
 
@@ -480,17 +515,17 @@ function addLeaf(pivotPos, azimuth, tilt, len, wid, seed) {
     const t = i / (N - 1);
     const y = 0.72 + t * 1.74;
     const off = stemOffset(y);
-    const len = 0.38 + (1 - t) * 0.24 + Math.random() * 0.12;
-    addLeaf(new THREE.Vector3(off.x, y, off.z), i * golden + 0.6 + Math.random() * 0.5,
-      0.88 + (1 - t) * 0.46 + Math.random() * 0.34,
-      len, len * 0.60, Math.random());
+    const len = 0.38 + (1 - t) * 0.24 + RNG() * 0.12;
+    addLeaf(new THREE.Vector3(off.x, y, off.z), i * golden + 0.6 + RNG() * 0.5,
+      0.88 + (1 - t) * 0.46 + RNG() * 0.34,
+      len, len * 0.60, RNG());
   }
 
   /* 顶芽两片小叶 */
   const top = stemOffset(STEM.y0 + STEM.h - 0.02);
   for (let i = 0; i < 2; i++) {
     addLeaf(new THREE.Vector3(top.x, STEM.y0 + STEM.h - 0.03, top.z),
-      1.2 + i * 2.6, 0.55 + i * 0.2, 0.24, 0.14, Math.random());
+      1.2 + i * 2.6, 0.55 + i * 0.2, 0.24, 0.14, RNG());
   }
 
   /* 两朵小花 */
@@ -530,14 +565,57 @@ function sampleLeafPoint(rec, out) {
   return out;
 }
 
+/* --- 风场 ---
+   旧做法是给每片叶子一个独立的 sin(freq·t + phase)，看起来像各自抽搐，
+   不像风。真实的风是“一阵一阵”的：所有叶子被同一个包络推着走，
+   高处到达得晚一点，叶柄是支点，梢头最软。
+
+   三个量分开：
+     · 包络 gust  —— 全局共享，决定“有没有风”
+     · 相位波      —— 沿株高延迟，决定“风走到哪一层了”
+     · 风向投影    —— 同一阵风在每片叶子局部坐标系里的分量
+   三者相乘，所有叶子才会朝同一个方向倒。 */
+const WIND = {
+  dir: 0.72,          /* 风的世界方向（绕 Y 弧度） */
+  calm: 0.016,        /* 无风时的呼吸式微动 */
+  gust: 0.034,        /* 阵风额外幅度 */
+  speed: 0.40,        /* 包络频率 */
+  wave: 2.3,          /* 沿株高的相位传播 */
+  flutter: 0.0055     /* 梢头高频抖动 */
+};
+let windGust = 0;
+
+function windEnvelope(time) {
+  const a = Math.sin(time * WIND.speed);
+  const b = Math.sin(time * WIND.speed * 2.17 + 1.31);
+  return clamp(a * 0.62 + b * 0.38, -1, 1);
+}
+
 /* --- 每帧 --- */
 function updatePlant(dt, time, grossNorm) {
+  windGust = windEnvelope(time);
+  const amp = WIND.calm + WIND.gust * (0.5 + 0.5 * windGust);
+
   for (let i = 0; i < leafRecords.length; i++) {
     const r = leafRecords[i];
-    const sway = Math.sin(time * r.freq + r.phase) * 0.026
-               + Math.sin(time * r.freq * 2.4 + r.phase * 1.7) * 0.009;
-    r.leafPivot.rotation.x = r.baseX + sway;
-    r.leafPivot.rotation.z = r.baseZ + Math.cos(time * r.freq * 0.85 + r.phase) * 0.020;
+    /* 风在叶片局部坐标里的分量：cos 给侧向，sin 给前后 */
+    const ang = WIND.dir + r.pivot.rotation.y;
+    const cw = Math.cos(ang);
+    const sw = Math.sin(ang);
+
+    /* 沿株高的相位延迟：同一阵风先到下部，再爬到梢头 */
+    const ph = time * WIND.wave - r.nodeY * 2.35;
+    const bend = Math.sin(ph) * amp * r.flex;
+
+    /* 侧向摆动（绕局部 Z） */
+    r.leafPivot.rotation.z = r.baseZ - cw * bend;
+    /* 前后俯仰（绕局部 X）：幅度小一半，带一点高频梢头颤动 */
+    r.leafPivot.rotation.x = r.baseX - sw * bend * 0.5
+      + Math.sin(ph * 1.9 + r.phase) * WIND.flutter * r.flex;
+
+    /* 光合活跃时叶肉透光略强，叶片会“亮”起来 */
     r.mat.emissiveIntensity = 0.018 + grossNorm * 0.135;
   }
+
+  LEAF_TRANS.uTransAmt.value = 0.028 + grossNorm * 0.032;
 }

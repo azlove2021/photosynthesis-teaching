@@ -529,6 +529,18 @@ function recompute() {
   State.sat = satPoint(State.T, State.C, State.O);
 }
 
+/* ---- 确定性随机 ----
+   xorshift32。植株形态完全由种子决定：每次打开、每台机器的截图
+   逐像素一致，课堂演示不会“今天这株和昨天不一样”。 */
+let _rngState = 0x2f6e2b1;
+function RNG() {
+  _rngState ^= _rngState << 13;
+  _rngState ^= _rngState >>> 17;
+  _rngState ^= _rngState << 5;
+  return (_rngState >>> 0) / 4294967296;
+}
+function seedRNG(s) { _rngState = (s >>> 0) || 0x2f6e2b1; }
+
 /* ---- 小工具 ---- */
 const clamp = (v, a, b) => v < a ? a : (v > b ? b : v);
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -549,21 +561,23 @@ const renderer = new THREE.WebGLRenderer({
   powerPreference: 'high-performance'
 });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.8));
-renderer.outputEncoding = THREE.sRGBEncoding;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.96;
+/* 材质不做色调映射、不做 sRGB 编码：场景以线性 HDR 渲进浮点缓冲，
+   曝光 / ACES / 调色 / 编码统一由 15-post.js 的合成阶段负责。
+   两边都做一遍是本项目最容易踩的坑。 */
+renderer.outputEncoding = THREE.LinearEncoding;
+renderer.toneMapping = THREE.NoToneMapping;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0x07100e, 9.5, 20);
+scene.fog = new THREE.Fog(0x030807, 10.5, 22);
 
-const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 100);
+const camera = new THREE.PerspectiveCamera(33, 1, 0.1, 100);
 
 /* ---- 自建轨道控制（不引入 OrbitControls，保持单文件） ---- */
 const Orbit = {
-  az: 0.34, pol: 1.245, dist: 6.35,
-  taz: 0.34, tpol: 1.245, tdist: 6.35,
+  az: 0.34, pol: 1.255, dist: 5.45,
+  taz: 0.34, tpol: 1.255, tdist: 5.45,
   target: new THREE.Vector3(0, 1.50, 0),
   autoIdle: 0,
   dragging: false,
@@ -581,7 +595,7 @@ function applyCamera() {
 }
 
 function resetCamera() {
-  Orbit.taz = 0.34; Orbit.tpol = 1.245; Orbit.tdist = 6.35;
+  Orbit.taz = 0.34; Orbit.tpol = 1.255; Orbit.tdist = 5.45;
 }
 
 glCanvas.addEventListener('pointerdown', e => {
@@ -626,7 +640,7 @@ scene.add(sun);
 scene.add(sun.target);
 sun.target.position.set(0, 1.5, 0);
 
-const rim = new THREE.DirectionalLight(0x6fb2ff, 0.62);
+const rim = new THREE.DirectionalLight(0x6fb2ff, 0.88);
 rim.position.set(-4.6, 2.6, -3.8);
 scene.add(rim);
 
@@ -648,9 +662,12 @@ scene.add(world);
   c.width = c.height = 512;
   const g = c.getContext('2d');
   const rg = g.createRadialGradient(256, 256, 20, 256, 256, 256);
-  rg.addColorStop(0, '#1b3a31');
-  rg.addColorStop(0.45, '#122720');
-  rg.addColorStop(1, '#060d0b');
+  /* 地面是一片摄影棚式的暗色衰减：中心留一点可读的绿，
+     边缘迅速压到黑，这样 ACES 的暗部抬升不会把整块地抬成亮青色 */
+  rg.addColorStop(0, '#16281f');
+  rg.addColorStop(0.28, '#0b1713');
+  rg.addColorStop(0.55, '#050c0a');
+  rg.addColorStop(1, '#000000');
   g.fillStyle = rg;
   g.fillRect(0, 0, 512, 512);
   const tex = new THREE.CanvasTexture(c);
@@ -676,8 +693,410 @@ function resize() {
   camera.updateProjectionMatrix();
   applyCamera();
   if (typeof updatePointScale === 'function') updatePointScale();
+  if (typeof resizePost === 'function') resizePost();
 }
 window.addEventListener('resize', resize);
+
+/* ---- 15-post.js ---- */
+/* =========================================================
+   15 · 合成管线
+   HDR 场景 → 亮部提取 → 三级分离高斯 → 曝光 → ACES → 调色 → sRGB
+
+   顺序是硬约束：泛光必须发生在色调映射之前。先压到 0..1 再提亮部，
+   拿到的只是灰，高光会变成一团脏雾。
+   ========================================================= */
+'use strict';
+
+/* ---------------------------------------------------------
+   视觉参数：按感知角色分组（曝光 / 光晕 / 色调 / 氛围）
+   --------------------------------------------------------- */
+const LOOK = {
+  /* 曝光 */
+  exposure: 1.00,
+  adaptDark: 1.10,     /* 黑暗档位的曝光补偿：全黑时也要看得清植株 */
+  adaptUp: 1.9,        /* 适应变亮的速度 */
+  adaptDown: 0.55,     /* 适应变暗更慢——两个方向的速度必须不同 */
+
+  /* 泛光 */
+  bloomOn: true,
+  bloomThreshold: 1.02,
+  bloomKnee: 0.50,
+  bloomStrength: 0.34,
+  bloomRadius: 1.0,
+  bloomLevels: 3,      /* 3 级模糊；弱机降到 2 级 */
+
+  /* 调色 */
+  gradeOn: true,
+  contrast: 1.06,
+  saturation: 1.07,
+  lift: [0.004, 0.009, 0.007],
+  gain: [1.03, 1.00, 0.976],
+
+  /* 氛围 */
+  vignette: 0.36,
+  bgGlow: 0.62,
+
+  /* 诊断：0 正常 / 1 仅泛光 / 2 无后期基线 / 3 亮度阈值 */
+  debug: 0
+};
+
+/* 手动解析查询串（file:// 下不依赖 URLSearchParams） */
+(function readURLLook() {
+  let q = '';
+  try { q = String(location.search || '').replace(/^\?/, ''); } catch (e) { q = ''; }
+  if (!q) return;
+  const kv = {};
+  q.split('&').forEach(function (pair) {
+    const i = pair.indexOf('=');
+    if (i > 0) kv[pair.slice(0, i)] = pair.slice(i + 1);
+  });
+  if (kv.post === '0') { LOOK.bloomOn = false; LOOK.gradeOn = false; }
+  if (kv.bloom === '0') LOOK.bloomOn = false;
+  if (kv.bloom) LOOK.bloomStrength = parseFloat(kv.bloom);
+  if (kv.exp) LOOK.exposure = parseFloat(kv.exp);
+  if (kv.debug) LOOK.debug = parseInt(kv.debug, 10) || 0;
+})();
+
+/* ---------------------------------------------------------
+   渲染目标
+   --------------------------------------------------------- */
+const POST = {
+  rtScene: null,
+  lv0a: null, lv0b: null,   /* 1/2 */
+  lv1a: null, lv1b: null,   /* 1/4 */
+  lv2a: null, lv2b: null,   /* 1/8 */
+  w: 2, h: 2,
+  hw: 2, hh: 2, qw: 2, qh: 2, ew: 2, eh: 2,
+  exposure: LOOK.exposure,
+  bloomLevel: 0
+};
+
+const IS_GL2 = renderer.capabilities.isWebGL2;
+
+function makeRT(w, h, withDepth) {
+  const opts = {
+    minFilter: THREE.LinearFilter,
+    magFilter: THREE.LinearFilter,
+    format: THREE.RGBAFormat,
+    type: THREE.HalfFloatType,
+    depthBuffer: !!withDepth,
+    stencilBuffer: false
+  };
+  if (withDepth && IS_GL2) opts.samples = 4;   /* 半浮点 + MSAA 抗锯齿 */
+  return new THREE.WebGLRenderTarget(Math.max(2, w | 0), Math.max(2, h | 0), opts);
+}
+
+POST.rtScene = makeRT(2, 2, true);
+POST.lv0a = makeRT(2, 2, false);
+POST.lv0b = makeRT(2, 2, false);
+POST.lv1a = makeRT(2, 2, false);
+POST.lv1b = makeRT(2, 2, false);
+POST.lv2a = makeRT(2, 2, false);
+POST.lv2b = makeRT(2, 2, false);
+
+/* ---------------------------------------------------------
+   全屏 pass 基础设施
+   --------------------------------------------------------- */
+const FS_VERT = [
+  'varying vec2 vUv;',
+  'void main() {',
+  '  vUv = uv;',
+  '  gl_Position = vec4(position.xy, 0.0, 1.0);',
+  '}'
+].join('\n');
+
+const fsScene = new THREE.Scene();
+const fsCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+const fsQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), null);
+fsQuad.frustumCulled = false;
+fsScene.add(fsQuad);
+
+function renderQuad(mat, target) {
+  fsQuad.material = mat;
+  renderer.setRenderTarget(target);
+  renderer.render(fsScene, fsCam);
+}
+
+function passMat(frag, uniforms) {
+  return new THREE.ShaderMaterial({
+    uniforms: uniforms,
+    vertexShader: FS_VERT,
+    fragmentShader: frag,
+    depthTest: false,
+    depthWrite: false,
+    transparent: false,
+    blending: THREE.NoBlending
+  });
+}
+
+/* ---- 亮部提取：软膝（soft knee）----
+   硬阈值会让泛光边缘出现一圈突兀的切断；软膝把阈值附近
+   平滑过渡，光晕才有自然的外扩感。 */
+const brightMat = passMat([
+  'uniform sampler2D tSrc;',
+  'uniform float uThresh;',
+  'uniform float uKnee;',
+  'varying vec2 vUv;',
+  'void main() {',
+  '  vec3 c = texture2D(tSrc, vUv).rgb;',
+  '  float br = max(c.r, max(c.g, c.b));',
+  '  float knee = uThresh * uKnee + 1e-4;',
+  '  float soft = clamp(br - uThresh + knee, 0.0, 2.0 * knee);',
+  '  soft = soft * soft / (4.0 * knee + 1e-4);',
+  '  float w = max(soft, br - uThresh) / max(br, 1e-4);',
+  '  gl_FragColor = vec4(max(c * w, vec3(0.0)), 1.0);',
+  '}'
+].join('\n'), {
+  tSrc: { value: null },
+  uThresh: { value: LOOK.bloomThreshold },
+  uKnee: { value: LOOK.bloomKnee }
+});
+
+/* ---- 分离高斯：5 抽头，等效 9 抽头权重 ---- */
+const blurMat = passMat([
+  'uniform sampler2D tSrc;',
+  'uniform vec2 uDir;',
+  'varying vec2 vUv;',
+  'void main() {',
+  '  vec3 c = texture2D(tSrc, vUv).rgb * 0.2270270270;',
+  '  c += texture2D(tSrc, vUv + uDir * 1.3846153846).rgb * 0.3162162162;',
+  '  c += texture2D(tSrc, vUv - uDir * 1.3846153846).rgb * 0.3162162162;',
+  '  c += texture2D(tSrc, vUv + uDir * 3.2307692308).rgb * 0.0702702703;',
+  '  c += texture2D(tSrc, vUv - uDir * 3.2307692308).rgb * 0.0702702703;',
+  '  gl_FragColor = vec4(c, 1.0);',
+  '}'
+].join('\n'), {
+  tSrc: { value: null },
+  uDir: { value: new THREE.Vector2(0, 0) }
+});
+
+/* ---- 合成：背景辉光 + 泛光 + 曝光 + ACES + 调色 + 暗角 + sRGB ---- */
+const finalMat = passMat([
+  'uniform sampler2D tScene;',
+  'uniform sampler2D tB0;',
+  'uniform sampler2D tB1;',
+  'uniform sampler2D tB2;',
+  'uniform float uExposure;',
+  'uniform float uBloom;',
+  'uniform float uContrast;',
+  'uniform float uSat;',
+  'uniform float uVig;',
+  'uniform float uBg;',
+  'uniform float uGrade;',
+  'uniform float uDebug;',
+  'uniform vec3 uLift;',
+  'uniform vec3 uGain;',
+  'uniform vec3 uW;',
+  'varying vec2 vUv;',
+
+  /* three.js 同款 ACES 拟合（RRT+ODT），保证与旧版观感一致 */
+  'vec3 rrtOdt(vec3 v) {',
+  '  vec3 a = v * (v + 0.0245786) - 0.000090537;',
+  '  vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081;',
+  '  return a / b;',
+  '}',
+  'vec3 aces(vec3 c) {',
+  '  mat3 IN = mat3(',
+  '    0.59719, 0.07600, 0.02840,',
+  '    0.35458, 0.90834, 0.13383,',
+  '    0.04823, 0.01566, 0.83777);',
+  '  mat3 OUT = mat3(',
+  '     1.60475, -0.10208, -0.00327,',
+  '    -0.53108,  1.10813, -0.07276,',
+  '    -0.07367, -0.00605,  1.07602);',
+  '  c = IN * c;',
+  '  c = rrtOdt(c);',
+  '  c = OUT * c;',
+  '  return clamp(c, 0.0, 1.0);',
+  '}',
+  'vec3 toSRGB(vec3 c) {',
+  '  c = clamp(c, 0.0, 1.0);',
+  '  vec3 hi = 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055;',
+  '  return mix(c * 12.92, hi, step(vec3(0.0031308), c));',
+  '}',
+
+  'void main() {',
+  '  vec3 c = texture2D(tScene, vUv).rgb;',
+
+  /* 场景本身清成黑。补一层极弱的径向底光，植株才不会贴在纯黑板上 */
+  '  vec2 p = vUv - vec2(0.5, 0.43);',
+  '  float d = length(p * vec2(1.0, 1.32));',
+  '  c += mix(vec3(0.017, 0.038, 0.032), vec3(0.0), smoothstep(0.0, 0.80, d)) * uBg;',
+
+  '  vec3 bl = (texture2D(tB0, vUv).rgb * uW.x',
+  '           + texture2D(tB1, vUv).rgb * uW.y',
+  '           + texture2D(tB2, vUv).rgb * uW.z) / max(0.0001, uW.x + uW.y + uW.z);',
+  '  c += bl * uBloom;',
+
+  /* 诊断：只看泛光 */
+  '  if (uDebug > 0.5 && uDebug < 1.5) {',
+  '    gl_FragColor = vec4(toSRGB(aces(bl * 4.0 / 0.6)), 1.0);',
+  '    return;',
+  '  }',
+  /* 诊断：无后期基线（无泛光、无调色），用来确认画面本身立得住 */
+  '  if (uDebug > 1.5 && uDebug < 2.5) {',
+  '    gl_FragColor = vec4(toSRGB(aces(texture2D(tScene, vUv).rgb * uExposure / 0.6)), 1.0);',
+  '    return;',
+  '  }',
+  /* 诊断：阈值可视化，红=会泛光，蓝=不会 */
+  '  if (uDebug > 2.5) {',
+  '    float l = dot(c, vec3(0.2126, 0.7152, 0.0722));',
+  '    vec3 m = l > 1.0 ? vec3(1.0, 0.22, 0.10) : vec3(0.10, 0.30, 0.85);',
+  '    gl_FragColor = vec4(m * clamp(l * 0.8, 0.10, 1.0), 1.0);',
+  '    return;',
+  '  }',
+
+  '  c = aces(c * uExposure / 0.6);',
+
+  /* 调色在显示域进行，顺序固定：lift/gain → 对比 → 饱和 */
+  '  c = c * uGain + uLift * (1.0 - c);',
+  '  c = (c - 0.5) * mix(1.0, uContrast, uGrade) + 0.5;',
+  '  float luma = dot(c, vec3(0.2126, 0.7152, 0.0722));',
+  '  c = mix(vec3(luma), c, mix(1.0, uSat, uGrade));',
+
+  /* 暗角 */
+  '  float vg = 1.0 - uVig * pow(clamp(length(vUv - 0.5) * 1.34, 0.0, 1.0), 2.3);',
+  '  c *= vg;',
+
+  '  gl_FragColor = vec4(toSRGB(c), 1.0);',
+  '}'
+].join('\n'), {
+  tScene: { value: null },
+  tB0: { value: null },
+  tB1: { value: null },
+  tB2: { value: null },
+  uExposure: { value: LOOK.exposure },
+  uBloom: { value: LOOK.bloomStrength },
+  uContrast: { value: LOOK.contrast },
+  uSat: { value: LOOK.saturation },
+  uVig: { value: LOOK.vignette },
+  uBg: { value: LOOK.bgGlow },
+  uGrade: { value: LOOK.gradeOn ? 1 : 0 },
+  uDebug: { value: LOOK.debug },
+  uLift: { value: new THREE.Vector3(LOOK.lift[0], LOOK.lift[1], LOOK.lift[2]) },
+  uGain: { value: new THREE.Vector3(LOOK.gain[0], LOOK.gain[1], LOOK.gain[2]) },
+  uW: { value: new THREE.Vector3(0.50, 0.32, 0.18) }
+});
+
+/* ---------------------------------------------------------
+   尺寸
+   --------------------------------------------------------- */
+function resizePost() {
+  const size = renderer.getDrawingBufferSize(new THREE.Vector2());
+  const w = Math.max(4, Math.floor(size.x));
+  const h = Math.max(4, Math.floor(size.y));
+  if (w === POST.w && h === POST.h) return;
+
+  POST.w = w; POST.h = h;
+  POST.hw = Math.max(2, w >> 1); POST.hh = Math.max(2, h >> 1);
+  POST.qw = Math.max(2, w >> 2); POST.qh = Math.max(2, h >> 2);
+  POST.ew = Math.max(2, w >> 3); POST.eh = Math.max(2, h >> 3);
+
+  POST.rtScene.setSize(w, h);
+  POST.lv0a.setSize(POST.hw, POST.hh);
+  POST.lv0b.setSize(POST.hw, POST.hh);
+  POST.lv1a.setSize(POST.qw, POST.qh);
+  POST.lv1b.setSize(POST.qw, POST.qh);
+  POST.lv2a.setSize(POST.ew, POST.eh);
+  POST.lv2b.setSize(POST.ew, POST.eh);
+}
+
+/* ---------------------------------------------------------
+   性能分级
+   教室里的机器从独显台式到核显笔记本都有。开局统计前 90 帧的
+   平均帧时，超过阈值就降一档：像素比压到 1.0、泛光少一级。
+   这是一条有依据的降级路径，不是"卡了就少画点"。
+   --------------------------------------------------------- */
+const PERF = { acc: 0, n: 0, done: false, tier: 0 };
+
+function updateQuality(dt) {
+  if (PERF.done) return;
+  if (!isFinite(dt) || dt <= 0 || dt > 0.25) return;   /* 切后台/首帧不计入 */
+  PERF.acc += dt;
+  PERF.n++;
+  if (PERF.n < 90) return;
+
+  PERF.done = true;
+  const avg = PERF.acc / PERF.n;
+  if (avg > 0.026) {
+    PERF.tier = 1;
+    LOOK.bloomLevels = 2;
+    if (renderer.getPixelRatio() > 1.0) {
+      renderer.setPixelRatio(1.0);
+      if (typeof resize === 'function') resize();
+    }
+  }
+}
+
+/* ---------------------------------------------------------
+   一次完整出图
+   --------------------------------------------------------- */
+function blurPass(src, dst, dirX, dirY, srcW, srcH) {
+  blurMat.uniforms.tSrc.value = src.texture;
+  const r = LOOK.bloomRadius;
+  blurMat.uniforms.uDir.value.set((dirX * r) / srcW, (dirY * r) / srcH);
+  renderQuad(blurMat, dst);
+}
+
+function renderScene(dt) {
+  updateQuality(dt);
+
+  /* 1 · 场景 → 线性 HDR 浮点缓冲 */
+  renderer.setRenderTarget(POST.rtScene);
+  renderer.render(scene, camera);
+  renderer.setRenderTarget(null);
+
+  /* 2 · 曝光自适应：亮部来得快，暗部退得慢 */
+  const lightNorm = clamp(State.I / PHYS.iMax, 0, 1);
+  const target = LOOK.exposure * (1 + (LOOK.adaptDark - 1) * (1 - lightNorm));
+  const rate = target > POST.exposure ? LOOK.adaptUp : LOOK.adaptDown;
+  POST.exposure = damp(POST.exposure, target, rate, Math.max(1e-4, dt || 0.016));
+
+  if (LOOK.bloomOn) {
+    brightMat.uniforms.tSrc.value = POST.rtScene.texture;
+    brightMat.uniforms.uThresh.value = LOOK.bloomThreshold;
+    brightMat.uniforms.uKnee.value = LOOK.bloomKnee;
+    renderQuad(brightMat, POST.lv0a);
+
+    /* 1/2：横竖各一次 */
+    blurPass(POST.lv0a, POST.lv0b, 1, 0, POST.hw, POST.hh);
+    blurPass(POST.lv0b, POST.lv0a, 0, 1, POST.hw, POST.hh);
+
+    /* 1/4：从 1/2 降采样，顺便把大范围光晕铺开 */
+    blurPass(POST.lv0a, POST.lv1a, 1, 0, POST.hw, POST.hh);
+    blurPass(POST.lv1a, POST.lv1b, 0, 1, POST.qw, POST.qh);
+
+    /* 1/8：最外层那圈很淡的辉光（性能分级为 2 级时跳过，
+       权重同时由 uW.z 归零，能量重新分配到前两级） */
+    if (LOOK.bloomLevels >= 3) {
+      blurPass(POST.lv1b, POST.lv2a, 1, 0, POST.qw, POST.qh);
+      blurPass(POST.lv2a, POST.lv2b, 0, 1, POST.ew, POST.eh);
+    }
+
+    POST.bloomLevel = LOOK.bloomLevels;
+  }
+
+  /* 3 · 合成到屏幕 */
+  finalMat.uniforms.tScene.value = POST.rtScene.texture;
+  finalMat.uniforms.tB0.value = POST.lv0a.texture;
+  finalMat.uniforms.tB1.value = POST.lv1b.texture;
+  finalMat.uniforms.tB2.value = POST.lv2b.texture;
+  finalMat.uniforms.uExposure.value = POST.exposure;
+  finalMat.uniforms.uBloom.value = LOOK.bloomOn ? LOOK.bloomStrength : 0;
+  finalMat.uniforms.uContrast.value = LOOK.contrast;
+  finalMat.uniforms.uSat.value = LOOK.saturation;
+  finalMat.uniforms.uVig.value = LOOK.vignette;
+  finalMat.uniforms.uBg.value = LOOK.bgGlow;
+  finalMat.uniforms.uGrade.value = LOOK.gradeOn ? 1 : 0;
+  finalMat.uniforms.uDebug.value = LOOK.debug;
+  const lv = LOOK.bloomOn ? LOOK.bloomLevels : 3;
+  finalMat.uniforms.uW.value.set(0.50, 0.32, lv >= 3 ? 0.18 : 0.0);
+  renderQuad(finalMat, null);
+}
+
+/* 供诊断与截图脚本读取 */
+window.__look = LOOK;
+window.__post = POST;
 
 /* ---- 20-plant.js ---- */
 /* =========================================================
@@ -712,13 +1131,13 @@ function makeLeafTexture() {
 
   /* 斑驳 */
   for (let i = 0; i < 1400; i++) {
-    const x = Math.random() * W, y = Math.random() * H;
-    const r = 8 + Math.random() * 54;
-    g.fillStyle = Math.random() > 0.52
-      ? 'rgba(166,214,116,' + (0.025 + Math.random() * 0.05).toFixed(3) + ')'
-      : 'rgba(16,48,18,' + (0.025 + Math.random() * 0.06).toFixed(3) + ')';
+    const x = RNG() * W, y = RNG() * H;
+    const r = 8 + RNG() * 54;
+    g.fillStyle = RNG() > 0.52
+      ? 'rgba(166,214,116,' + (0.025 + RNG() * 0.05).toFixed(3) + ')'
+      : 'rgba(16,48,18,' + (0.025 + RNG() * 0.06).toFixed(3) + ')';
     g.beginPath();
-    g.ellipse(x, y, r, r * (0.4 + Math.random() * 0.9), Math.random() * 3.14, 0, 6.2832);
+    g.ellipse(x, y, r, r * (0.4 + RNG() * 0.9), RNG() * 3.14, 0, 6.2832);
     g.fill();
   }
 
@@ -734,8 +1153,8 @@ function makeLeafTexture() {
   for (let i = 0; i < 17; i++) {
     const y0 = 44 + i * 70;
     for (const sign of [1, -1]) {
-      const reach = (232 + Math.random() * 42);
-      const drop = 92 + Math.random() * 34;
+      const reach = (232 + RNG() * 42);
+      const drop = 92 + RNG() * 34;
       const y1 = y0 + (sign > 0 ? 0 : 34);
       veinGlow(function () {
         g.moveTo(midX, y1);
@@ -761,9 +1180,9 @@ function makeLeafTexture() {
   /* 细网脉 */
   g.strokeStyle = 'rgba(190,228,144,0.20)';
   for (let i = 0; i < 620; i++) {
-    const x = Math.random() * W, y = Math.random() * H;
-    const a = Math.random() * 6.2832, L = 10 + Math.random() * 32;
-    g.lineWidth = 0.6 + Math.random() * 0.5;
+    const x = RNG() * W, y = RNG() * H;
+    const a = RNG() * 6.2832, L = 10 + RNG() * 32;
+    g.lineWidth = 0.6 + RNG() * 0.5;
     g.beginPath();
     g.moveTo(x, y);
     g.lineTo(x + Math.cos(a) * L, y + Math.sin(a) * L * 0.45);
@@ -772,10 +1191,10 @@ function makeLeafTexture() {
 
   /* 气孔 */
   for (let i = 0; i < 2200; i++) {
-    const x = Math.random() * W, y = Math.random() * H;
-    g.fillStyle = 'rgba(14,50,20,' + (0.05 + Math.random() * 0.10).toFixed(3) + ')';
+    const x = RNG() * W, y = RNG() * H;
+    g.fillStyle = 'rgba(14,50,20,' + (0.05 + RNG() * 0.10).toFixed(3) + ')';
     g.beginPath();
-    g.ellipse(x, y, 1.7, 1.0, Math.random() * 3.14, 0, 6.2832);
+    g.ellipse(x, y, 1.7, 1.0, RNG() * 3.14, 0, 6.2832);
     g.fill();
   }
 
@@ -833,9 +1252,9 @@ function makeLeafBump() {
   g.strokeStyle = '#fbfbfb';
   g.stroke();
   for (let i = 0; i < 900; i++) {
-    const x = Math.random() * W, y = Math.random() * H;
-    g.fillStyle = 'rgba(255,255,255,' + (0.04 + Math.random() * 0.09).toFixed(3) + ')';
-    g.fillRect(x, y, 1 + Math.random() * 2, 1);
+    const x = RNG() * W, y = RNG() * H;
+    g.fillStyle = 'rgba(255,255,255,' + (0.04 + RNG() * 0.09).toFixed(3) + ')';
+    g.fillRect(x, y, 1 + RNG() * 2, 1);
   }
   return c;
 }
@@ -854,20 +1273,20 @@ function makeStemTexture() {
   g.fillRect(0, 0, W, H);
 
   for (let i = 0; i < 220; i++) {
-    const x = Math.random() * W;
+    const x = RNG() * W;
     g.beginPath();
     g.moveTo(x, 0);
-    g.lineTo(x + (Math.random() - 0.5) * 14, H);
-    g.lineWidth = 0.6 + Math.random() * 3.0;
-    g.strokeStyle = Math.random() > 0.5
-      ? 'rgba(158,198,116,' + (0.05 + Math.random() * 0.16).toFixed(3) + ')'
-      : 'rgba(12,30,10,' + (0.05 + Math.random() * 0.18).toFixed(3) + ')';
+    g.lineTo(x + (RNG() - 0.5) * 14, H);
+    g.lineWidth = 0.6 + RNG() * 3.0;
+    g.strokeStyle = RNG() > 0.5
+      ? 'rgba(158,198,116,' + (0.05 + RNG() * 0.16).toFixed(3) + ')'
+      : 'rgba(12,30,10,' + (0.05 + RNG() * 0.18).toFixed(3) + ')';
     g.stroke();
   }
   /* 皮孔 */
   for (let i = 0; i < 130; i++) {
-    const x = Math.random() * W, y = Math.random() * H;
-    g.fillStyle = 'rgba(206,228,166,' + (0.05 + Math.random() * 0.14).toFixed(3) + ')';
+    const x = RNG() * W, y = RNG() * H;
+    g.fillStyle = 'rgba(206,228,166,' + (0.05 + RNG() * 0.14).toFixed(3) + ')';
     g.beginPath();
     g.ellipse(x, y, 1.6, 4.2, 0, 0, 6.2832);
     g.fill();
@@ -945,6 +1364,38 @@ world.add(plant);
 const leafRecords = [];
 const respireRecords = [];
 
+/* --- 叶片透光 ---
+   叶片不是不透明薄板：光会穿进叶肉再从边缘透出来。没有这一层，
+   逆光和侧光下叶子就是一片死黑的剪影，怎么调灯都不像真的。
+   用掠射角的菲涅尔边缘加一层自发光近似次表面散射，
+   成本只有一个 pow()，但叶子立刻“有厚度”了。 */
+const LEAF_TRANS = {
+  uTransColor: { value: new THREE.Color(0x8ad98e) },
+  uTransAmt: { value: 0.030 }
+};
+
+function withLeafGlow(mat) {
+  mat.onBeforeCompile = function (shader) {
+    shader.uniforms.uTransColor = LEAF_TRANS.uTransColor;
+    shader.uniforms.uTransAmt = LEAF_TRANS.uTransAmt;
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>',
+        '#include <common>\nuniform vec3 uTransColor;\nuniform float uTransAmt;')
+      .replace('#include <dithering_fragment>', [
+        '#include <dithering_fragment>',
+        '{',
+        '  vec3 vdir = normalize(vViewPosition);',
+        '  float edge = 1.0 - clamp(abs(dot(normalize(normal), vdir)), 0.0, 1.0);',
+        '  float rim = pow(edge, 2.4);',
+        '  gl_FragColor.rgb += uTransColor * uTransAmt * rim * diffuseColor.rgb * 2.2;',
+        '}'
+      ].join('\n'));
+  };
+  /* 同一份着色器程序在所有叶片间共享，避免每片叶子重新编译 */
+  mat.customProgramCacheKey = function () { return 'leafGlow'; };
+  return mat;
+}
+
 /* --- 花盆 --- */
 (function buildPot() {
   const potMat = new THREE.MeshPhysicalMaterial({
@@ -973,11 +1424,11 @@ const respireRecords = [];
   sg.fillStyle = '#3a2a1c';
   sg.fillRect(0, 0, 256, 256);
   for (let i = 0; i < 3200; i++) {
-    const x = Math.random() * 256, y = Math.random() * 256;
-    sg.fillStyle = Math.random() > 0.5
-      ? 'rgba(92,68,42,' + (0.18 + Math.random() * 0.5).toFixed(2) + ')'
-      : 'rgba(22,14,9,' + (0.18 + Math.random() * 0.5).toFixed(2) + ')';
-    sg.fillRect(x, y, 1 + Math.random() * 3, 1 + Math.random() * 3);
+    const x = RNG() * 256, y = RNG() * 256;
+    sg.fillStyle = RNG() > 0.5
+      ? 'rgba(92,68,42,' + (0.18 + RNG() * 0.5).toFixed(2) + ')'
+      : 'rgba(22,14,9,' + (0.18 + RNG() * 0.5).toFixed(2) + ')';
+    sg.fillRect(x, y, 1 + RNG() * 3, 1 + RNG() * 3);
   }
   const soilTex = new THREE.CanvasTexture(soilC);
   soilTex.encoding = THREE.sRGBEncoding;
@@ -999,15 +1450,15 @@ const respireRecords = [];
   const N = 11;
   for (let i = 0; i < N; i++) {
     const a = (i / N) * Math.PI * 2 + 0.25;
-    const spread = 0.09 + Math.random() * 0.22;
+    const spread = 0.09 + RNG() * 0.22;
     const pts = [];
-    const depth = 0.28 + Math.random() * 0.16;
+    const depth = 0.28 + RNG() * 0.16;
     for (let k = 0; k <= 5; k++) {
       const t = k / 5;
       const r = spread * t;
       pts.push(new THREE.Vector3(
         Math.cos(a + t * 0.9) * r,
-        0.475 - depth * t * (0.7 + Math.random() * 0.3),
+        0.475 - depth * t * (0.7 + RNG() * 0.3),
         Math.sin(a + t * 0.9) * r
       ));
     }
@@ -1073,7 +1524,7 @@ function addLeaf(pivotPos, azimuth, tilt, len, wid, seed) {
   pivot.rotation.y = azimuth;
   plant.add(pivot);
 
-  const pet = 0.09 + Math.random() * 0.08;
+  const pet = 0.09 + RNG() * 0.08;
   const petiole = new THREE.Mesh(
     new THREE.CylinderGeometry(0.0055, 0.0082, pet, 6, 1),
     new THREE.MeshStandardMaterial({ color: 0x5a8a3c, roughness: 0.8 })
@@ -1085,25 +1536,25 @@ function addLeaf(pivotPos, azimuth, tilt, len, wid, seed) {
   const leafPivot = new THREE.Group();
   leafPivot.position.y = pet;
   leafPivot.rotation.x = -tilt;
-  leafPivot.rotation.z = (Math.random() - 0.5) * 0.30;
+  leafPivot.rotation.z = (RNG() - 0.5) * 0.30;
   pivot.add(leafPivot);
 
-  const geo = makeLeafGeometry(len, wid, 0.15, 0.26, (Math.random() - 0.5) * 0.5);
-  const mat = new THREE.MeshStandardMaterial({
+  const geo = makeLeafGeometry(len, wid, 0.15, 0.26, (RNG() - 0.5) * 0.5);
+  const mat = withLeafGlow(new THREE.MeshStandardMaterial({
     map: leafTex,
     bumpMap: leafBumpTex,
     bumpScale: 0.018,
-    roughness: 0.46 + Math.random() * 0.14,
+    roughness: 0.46 + RNG() * 0.14,
     metalness: 0.0,
     side: THREE.DoubleSide,
     color: new THREE.Color().setHSL(
-      0.252 + (Math.random() - 0.5) * 0.024,
-      0.28 + Math.random() * 0.16,
-      0.72 + Math.random() * 0.16
+      0.252 + (RNG() - 0.5) * 0.024,
+      0.28 + RNG() * 0.16,
+      0.72 + RNG() * 0.16
     ),
     emissive: new THREE.Color(0x2f8a4e),
     emissiveIntensity: 0.0
-  });
+  }));
   const leaf = new THREE.Mesh(geo, mat);
   leaf.castShadow = true;
   leaf.receiveShadow = true;
@@ -1114,7 +1565,10 @@ function addLeaf(pivotPos, azimuth, tilt, len, wid, seed) {
     baseX: leafPivot.rotation.x,
     baseZ: leafPivot.rotation.z,
     phase: seed * 6.2832,
-    freq: 0.5 + Math.random() * 0.4,
+    freq: 0.5 + RNG() * 0.4,
+    /* 高度决定风到达的先后（相位差）与柔韧度：梢头最软，摆幅最大 */
+    nodeY: pivotPos.y,
+    flex: 0.55 + clamp((pivotPos.y - 0.7) / 2.0, 0, 1) * 0.85,
     len, wid
   });
   respireRecords.push({ type: 'leaf', obj: leaf, local: new THREE.Vector3(0, len * 0.45, 0) });
@@ -1149,9 +1603,9 @@ function addLeaf(pivotPos, azimuth, tilt, len, wid, seed) {
     for (let i = 0; i < nLeaf; i++) {
       const d = b.len * (0.32 + i * 0.21);
       const nodeP = baseV.clone().add(dir.clone().multiplyScalar(d));
-      const az = b.az + i * 1.72 + Math.random() * 0.9;
-      const len = 0.44 + Math.random() * 0.18 - i * 0.02;
-      addLeaf(nodeP, az, 0.86 + Math.random() * 0.62, len, len * 0.60, Math.random());
+      const az = b.az + i * 1.72 + RNG() * 0.9;
+      const len = 0.44 + RNG() * 0.18 - i * 0.02;
+      addLeaf(nodeP, az, 0.86 + RNG() * 0.62, len, len * 0.60, RNG());
     }
   });
 
@@ -1162,17 +1616,17 @@ function addLeaf(pivotPos, azimuth, tilt, len, wid, seed) {
     const t = i / (N - 1);
     const y = 0.72 + t * 1.74;
     const off = stemOffset(y);
-    const len = 0.38 + (1 - t) * 0.24 + Math.random() * 0.12;
-    addLeaf(new THREE.Vector3(off.x, y, off.z), i * golden + 0.6 + Math.random() * 0.5,
-      0.88 + (1 - t) * 0.46 + Math.random() * 0.34,
-      len, len * 0.60, Math.random());
+    const len = 0.38 + (1 - t) * 0.24 + RNG() * 0.12;
+    addLeaf(new THREE.Vector3(off.x, y, off.z), i * golden + 0.6 + RNG() * 0.5,
+      0.88 + (1 - t) * 0.46 + RNG() * 0.34,
+      len, len * 0.60, RNG());
   }
 
   /* 顶芽两片小叶 */
   const top = stemOffset(STEM.y0 + STEM.h - 0.02);
   for (let i = 0; i < 2; i++) {
     addLeaf(new THREE.Vector3(top.x, STEM.y0 + STEM.h - 0.03, top.z),
-      1.2 + i * 2.6, 0.55 + i * 0.2, 0.24, 0.14, Math.random());
+      1.2 + i * 2.6, 0.55 + i * 0.2, 0.24, 0.14, RNG());
   }
 
   /* 两朵小花 */
@@ -1212,16 +1666,59 @@ function sampleLeafPoint(rec, out) {
   return out;
 }
 
+/* --- 风场 ---
+   旧做法是给每片叶子一个独立的 sin(freq·t + phase)，看起来像各自抽搐，
+   不像风。真实的风是“一阵一阵”的：所有叶子被同一个包络推着走，
+   高处到达得晚一点，叶柄是支点，梢头最软。
+
+   三个量分开：
+     · 包络 gust  —— 全局共享，决定“有没有风”
+     · 相位波      —— 沿株高延迟，决定“风走到哪一层了”
+     · 风向投影    —— 同一阵风在每片叶子局部坐标系里的分量
+   三者相乘，所有叶子才会朝同一个方向倒。 */
+const WIND = {
+  dir: 0.72,          /* 风的世界方向（绕 Y 弧度） */
+  calm: 0.016,        /* 无风时的呼吸式微动 */
+  gust: 0.034,        /* 阵风额外幅度 */
+  speed: 0.40,        /* 包络频率 */
+  wave: 2.3,          /* 沿株高的相位传播 */
+  flutter: 0.0055     /* 梢头高频抖动 */
+};
+let windGust = 0;
+
+function windEnvelope(time) {
+  const a = Math.sin(time * WIND.speed);
+  const b = Math.sin(time * WIND.speed * 2.17 + 1.31);
+  return clamp(a * 0.62 + b * 0.38, -1, 1);
+}
+
 /* --- 每帧 --- */
 function updatePlant(dt, time, grossNorm) {
+  windGust = windEnvelope(time);
+  const amp = WIND.calm + WIND.gust * (0.5 + 0.5 * windGust);
+
   for (let i = 0; i < leafRecords.length; i++) {
     const r = leafRecords[i];
-    const sway = Math.sin(time * r.freq + r.phase) * 0.026
-               + Math.sin(time * r.freq * 2.4 + r.phase * 1.7) * 0.009;
-    r.leafPivot.rotation.x = r.baseX + sway;
-    r.leafPivot.rotation.z = r.baseZ + Math.cos(time * r.freq * 0.85 + r.phase) * 0.020;
+    /* 风在叶片局部坐标里的分量：cos 给侧向，sin 给前后 */
+    const ang = WIND.dir + r.pivot.rotation.y;
+    const cw = Math.cos(ang);
+    const sw = Math.sin(ang);
+
+    /* 沿株高的相位延迟：同一阵风先到下部，再爬到梢头 */
+    const ph = time * WIND.wave - r.nodeY * 2.35;
+    const bend = Math.sin(ph) * amp * r.flex;
+
+    /* 侧向摆动（绕局部 Z） */
+    r.leafPivot.rotation.z = r.baseZ - cw * bend;
+    /* 前后俯仰（绕局部 X）：幅度小一半，带一点高频梢头颤动 */
+    r.leafPivot.rotation.x = r.baseX - sw * bend * 0.5
+      + Math.sin(ph * 1.9 + r.phase) * WIND.flutter * r.flex;
+
+    /* 光合活跃时叶肉透光略强，叶片会“亮”起来 */
     r.mat.emissiveIntensity = 0.018 + grossNorm * 0.135;
   }
+
+  LEAF_TRANS.uTransAmt.value = 0.028 + grossNorm * 0.032;
 }
 
 /* ---- 30-particles.js ---- */
@@ -1280,12 +1777,15 @@ const PT_VERT = [
 
 const PT_FRAG = [
   'uniform sampler2D uMap;',
+  'uniform float uGain;',
   'varying vec3 vColor;',
   'varying float vAlpha;',
   'void main() {',
   '  vec4 t = texture2D(uMap, gl_PointCoord);',
   '  if (t.a < 0.01) discard;',
-  '  gl_FragColor = vec4(vColor, t.a * vAlpha);',
+  /* uGain 把粒子推到线性 1.0 以上：泛光只认过曝的部分，
+     所以物质流的“亮”是亮度，不是加色叠加出来的假白 */
+  '  gl_FragColor = vec4(vColor * uGain, t.a * vAlpha);',
   '}'
 ].join('\n');
 
@@ -1333,7 +1833,12 @@ function Stream(cfg) {
   geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 1.4, 0), 7);
 
   const mat = new THREE.ShaderMaterial({
-    uniforms: PT_UNIFORMS,
+    /* uMap / uScale 共享同一份 uniform 对象，uGain 每条流各自一份 */
+    uniforms: {
+      uMap: PT_UNIFORMS.uMap,
+      uScale: PT_UNIFORMS.uScale,
+      uGain: { value: cfg.gain === undefined ? 1.6 : cfg.gain }
+    },
     vertexShader: PT_VERT,
     fragmentShader: PT_FRAG,
     transparent: true,
@@ -1432,12 +1937,15 @@ Stream.prototype.update = function (dt) {
   this.alAttr.needsUpdate = true;
 };
 
-/* ---------- 五套流 ---------- */
-const stO2 = new Stream({ max: 700, color: 0x62f2c0, size: 0.072, life: 2.6, jitter: 0.10, speed: 0.80 });
-const stCO2 = new Stream({ max: 560, color: 0xffb04a, size: 0.063, life: 2.2, jitter: 0.05, speed: 1.00, hasTgt: true, fadePow: 1.0 });
-const stH2O = new Stream({ max: 320, color: 0x5ec4ff, size: 0.051, life: 2.1, jitter: 0.03, speed: 0.85, hasTgt: true, swirl: 0.55 });
-const stSugar = new Stream({ max: 320, color: 0xffdc8a, size: 0.053, life: 2.4, jitter: 0.05, speed: 0.72, hasTgt: true, swirl: 0.25 });
-const stResp = new Stream({ max: 780, color: 0xff8a4a, size: 0.057, life: 3.0, jitter: 0.20, speed: 0.34, fadePow: 1.3, sizeVar: 0.45 });
+/* ---------- 五套流 ----------
+   gain 是 HDR 强度：刚好越过泛光阈值即可。
+   推到 2.0 以上三个通道同时饱和，粒子会变成白点，
+   O₂ 绿 / CO₂ 琥珀的颜色编码就废了——这个课上是要学生分辨的。 */
+const stO2 = new Stream({ max: 700, color: 0x62f2c0, size: 0.050, life: 2.6, jitter: 0.10, speed: 0.80, gain: 1.18 });
+const stCO2 = new Stream({ max: 560, color: 0xffb04a, size: 0.047, life: 2.2, jitter: 0.05, speed: 1.00, hasTgt: true, fadePow: 1.0, gain: 1.16 });
+const stH2O = new Stream({ max: 320, color: 0x5ec4ff, size: 0.043, life: 2.1, jitter: 0.03, speed: 0.85, hasTgt: true, swirl: 0.55, gain: 1.14 });
+const stSugar = new Stream({ max: 320, color: 0xffdc8a, size: 0.043, life: 2.4, jitter: 0.05, speed: 0.72, hasTgt: true, swirl: 0.25, gain: 1.10 });
+const stResp = new Stream({ max: 780, color: 0xff8a4a, size: 0.045, life: 3.0, jitter: 0.20, speed: 0.34, fadePow: 1.3, sizeVar: 0.45, gain: 1.06 });
 
 /* ---------- 发射调度 ---------- */
 const emitAcc = { o2: 0, co2: 0, h2o: 0, sugar: 0, resp: 0 };
@@ -1459,7 +1967,7 @@ function emitParticles(dt) {
   const gN = clamp(g / 27, 0, 1.15);
 
   /* O₂：叶面逸出，向上扩散 */
-  emitAcc.o2 += 100 * gN * dt;
+  emitAcc.o2 += 82 * gN * dt;
   let c = Math.min(16, Math.floor(emitAcc.o2));
   emitAcc.o2 -= c;
   for (; c > 0; c--) {
@@ -1473,7 +1981,7 @@ function emitParticles(dt) {
   }
 
   /* CO₂：箱壁 → 叶面 */
-  emitAcc.co2 += 78 * gN * dt;
+  emitAcc.co2 += 64 * gN * dt;
   c = Math.min(14, Math.floor(emitAcc.co2));
   emitAcc.co2 -= c;
   for (; c > 0; c--) {
@@ -1486,7 +1994,7 @@ function emitParticles(dt) {
   }
 
   /* H₂O：根压驱动上行 */
-  emitAcc.h2o += 40 * gN * dt;
+  emitAcc.h2o += 35 * gN * dt;
   c = Math.min(10, Math.floor(emitAcc.h2o));
   emitAcc.h2o -= c;
   for (; c > 0; c--) {
@@ -1497,7 +2005,7 @@ function emitParticles(dt) {
   }
 
   /* 有机物：叶 → 根 */
-  emitAcc.sugar += 42 * gN * dt;
+  emitAcc.sugar += 37 * gN * dt;
   c = Math.min(10, Math.floor(emitAcc.sugar));
   emitAcc.sugar -= c;
   for (; c > 0; c--) {
@@ -1508,7 +2016,7 @@ function emitParticles(dt) {
   }
 
   /* 呼吸 CO₂：全株持续，永不停止 */
-  emitAcc.resp += 19 * r * (State.whole ? 1.0 : 0.82) * dt;
+  emitAcc.resp += 18 * r * (State.whole ? 1.0 : 0.82) * dt;
   c = Math.min(12, Math.floor(emitAcc.resp));
   emitAcc.resp -= c;
   for (; c > 0; c--) {
@@ -1548,7 +2056,7 @@ function updateParticles(dt) {
    ========================================================= */
 'use strict';
 
-const CHAMBER = { w: 3.00, h: 3.30, d: 2.20, cy: 1.65 };
+const CHAMBER = { w: 3.00, h: 3.02, d: 2.20, cy: 1.51 };
 
 const chamberGroup = new THREE.Group();
 world.add(chamberGroup);
@@ -1559,7 +2067,7 @@ world.add(chamberGroup);
   const glass = new THREE.MeshPhysicalMaterial({
     color: 0xbfeee0,
     transparent: true,
-    opacity: 0.042,
+    opacity: 0.032,
     roughness: 0.03,
     metalness: 0,
     side: THREE.DoubleSide,
@@ -1572,6 +2080,45 @@ world.add(chamberGroup);
   box.position.y = CHAMBER.cy;
   box.renderOrder = 6;
   chamberGroup.add(box);
+
+  /* 菲涅尔边缘：玻璃的可读性来自掠射角的反射，不是均匀的灰底。
+     均匀 tint 加多少都像雾，掠射边缘一亮，箱体立刻成立。 */
+  const rimGlass = new THREE.ShaderMaterial({
+    uniforms: {
+      uColor: { value: new THREE.Color(0x9df0dc) },
+      uAmt: { value: 0.085 },
+      uPow: { value: 4.2 }
+    },
+    vertexShader: [
+      'varying vec3 vN;',
+      'varying vec3 vV;',
+      'void main() {',
+      '  vec4 mv = modelViewMatrix * vec4(position, 1.0);',
+      '  vN = normalize(normalMatrix * normal);',
+      '  vV = normalize(-mv.xyz);',
+      '  gl_Position = projectionMatrix * mv;',
+      '}'
+    ].join('\n'),
+    fragmentShader: [
+      'uniform vec3 uColor;',
+      'uniform float uAmt;',
+      'uniform float uPow;',
+      'varying vec3 vN;',
+      'varying vec3 vV;',
+      'void main() {',
+      '  float f = pow(1.0 - clamp(abs(dot(normalize(vN), normalize(vV))), 0.0, 1.0), uPow);',
+      '  gl_FragColor = vec4(uColor * f * uAmt, f * uAmt);',
+      '}'
+    ].join('\n'),
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    side: THREE.FrontSide
+  });
+  const shell = new THREE.Mesh(geo, rimGlass);
+  shell.position.y = CHAMBER.cy;
+  shell.renderOrder = 8;
+  chamberGroup.add(shell);
 
   /* 棱线 */
   const edges = new THREE.LineSegments(
@@ -1742,12 +2289,12 @@ let dust, dustAttr, dustSeed;
   const pos = new Float32Array(N * 3);
   dustSeed = new Float32Array(N * 3);
   for (let i = 0; i < N; i++) {
-    pos[i * 3] = (Math.random() - 0.5) * 3.0;
-    pos[i * 3 + 1] = 0.2 + Math.random() * 3.2;
-    pos[i * 3 + 2] = (Math.random() - 0.5) * 2.2;
-    dustSeed[i * 3] = 0.3 + Math.random() * 0.7;
-    dustSeed[i * 3 + 1] = 0.4 + Math.random() * 0.8;
-    dustSeed[i * 3 + 2] = Math.random() * 6.2832;
+    pos[i * 3] = (RNG() - 0.5) * 3.0;
+    pos[i * 3 + 1] = 0.2 + RNG() * 3.2;
+    pos[i * 3 + 2] = (RNG() - 0.5) * 2.2;
+    dustSeed[i * 3] = 0.3 + RNG() * 0.7;
+    dustSeed[i * 3 + 1] = 0.4 + RNG() * 0.8;
+    dustSeed[i * 3 + 2] = RNG() * 6.2832;
   }
   const geo = new THREE.BufferGeometry();
   dustAttr = new THREE.BufferAttribute(pos, 3);
@@ -1778,7 +2325,7 @@ function updateDust(dt, time, lightNorm) {
     if (p[i + 1] > 3.5) p[i + 1] = 0.15;
   }
   dustAttr.needsUpdate = true;
-  dust.material.opacity = 0.06 + lightNorm * 0.30;
+  dust.material.opacity = 0.035 + lightNorm * 0.185;
 }
 
 /* --- 传感器灯随读数变化 --- */
@@ -1794,6 +2341,13 @@ function updateSensors(netSign, absNet, time) {
   sensorPods.o2.halo.scale.set(h2, h2, 1);
   sensorPods.co2.tip.material.color.setHex(netSign > 0 ? 0xffb454 : 0x8a6a3a);
   sensorPods.o2.tip.material.color.setHex(netSign > 0 ? 0x6ee7c4 : 0x3a6a5c);
+  /* 读数越强，探头越亮 —— 亮度是“示数”的视觉编码，不是装饰。
+     乘到线性 1.0 以上才会被泛光挑出来，读数大时探头自己会发光。 */
+  const hdr = 1.0 + k * 1.9;
+  sensorPods.co2.tip.material.color.multiplyScalar(hdr);
+  sensorPods.o2.tip.material.color.multiplyScalar(hdr);
+  sensorPods.co2.halo.material.color.setHex(netSign > 0 ? 0xffb454 : 0x8a6a3a);
+  sensorPods.o2.halo.material.color.setHex(netSign > 0 ? 0x6ee7c4 : 0x3a6a5c);
 }
 
 /* ---- 50-curve.js ---- */
@@ -2359,7 +2913,11 @@ let chartTimer = 0;
 
 function frame() {
   requestAnimationFrame(frame);
-  const dt = Math.min(clock.getDelta(), 0.055);
+  stepFrame(Math.min(clock.getDelta(), 0.055));
+}
+
+/* 单帧推进：不排 rAF，方便截图脚本同步预热到稳定态 */
+function stepFrame(dt) {
   State.t += dt;
 
   /* 相机 */
@@ -2380,9 +2938,10 @@ function frame() {
   const ln = clamp(State.I / PHYS.iMax, 0, 1);
   sun.intensity = 0.25 + ln * 1.95;
   hemi.intensity = 0.34 + ln * 0.28;
-  beamMesh.material.opacity = 0.030 + ln * 0.22;
-  sunSprite.material.opacity = 0.18 + ln * 0.8;
-  const ss = 1.15 + ln * 0.85;
+  /* 光柱和日冕都是加色图层，在 HDR 里会连片泛光，必须克制 */
+  beamMesh.material.opacity = 0.022 + ln * 0.125;
+  sunSprite.material.opacity = 0.12 + ln * 0.52;
+  const ss = 1.02 + ln * 0.62;
   sunSprite.scale.set(ss, ss, 1);
   rootGlow.intensity = clamp(State.rates.resp / 5, 0, 1.2) * 0.55;
 
@@ -2400,8 +2959,11 @@ function frame() {
   chartTimer += dt;
   if (chartTimer > 0.06) { chartTimer = 0; drawChart(); narrate(); }
 
-  renderer.render(scene, camera);
+  /* 出图：交给合成管线（HDR → 泛光 → 曝光 → 调色） */
+  renderScene(dt);
 }
+
+window.__warmFrame = stepFrame;
 
 /* ---------- 启动 ---------- */
 function boot() {

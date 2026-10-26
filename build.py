@@ -6,7 +6,7 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(ROOT, 'src')
 OUT = os.path.join(ROOT, 'photosynthesis-teaching.html')
 
-JS_FILES = ['00-model.js', '10-scene.js', '20-plant.js',
+JS_FILES = ['00-model.js', '10-scene.js', '15-post.js', '20-plant.js',
             '30-particles.js', '40-chamber.js', '50-curve.js', '60-ui.js']
 
 def read(p):

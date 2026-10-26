@@ -53,12 +53,15 @@ const PT_VERT = [
 
 const PT_FRAG = [
   'uniform sampler2D uMap;',
+  'uniform float uGain;',
   'varying vec3 vColor;',
   'varying float vAlpha;',
   'void main() {',
   '  vec4 t = texture2D(uMap, gl_PointCoord);',
   '  if (t.a < 0.01) discard;',
-  '  gl_FragColor = vec4(vColor, t.a * vAlpha);',
+  /* uGain 把粒子推到线性 1.0 以上：泛光只认过曝的部分，
+     所以物质流的“亮”是亮度，不是加色叠加出来的假白 */
+  '  gl_FragColor = vec4(vColor * uGain, t.a * vAlpha);',
   '}'
 ].join('\n');
 
@@ -106,7 +109,12 @@ function Stream(cfg) {
   geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 1.4, 0), 7);
 
   const mat = new THREE.ShaderMaterial({
-    uniforms: PT_UNIFORMS,
+    /* uMap / uScale 共享同一份 uniform 对象，uGain 每条流各自一份 */
+    uniforms: {
+      uMap: PT_UNIFORMS.uMap,
+      uScale: PT_UNIFORMS.uScale,
+      uGain: { value: cfg.gain === undefined ? 1.6 : cfg.gain }
+    },
     vertexShader: PT_VERT,
     fragmentShader: PT_FRAG,
     transparent: true,
@@ -205,12 +213,15 @@ Stream.prototype.update = function (dt) {
   this.alAttr.needsUpdate = true;
 };
 
-/* ---------- 五套流 ---------- */
-const stO2 = new Stream({ max: 700, color: 0x62f2c0, size: 0.072, life: 2.6, jitter: 0.10, speed: 0.80 });
-const stCO2 = new Stream({ max: 560, color: 0xffb04a, size: 0.063, life: 2.2, jitter: 0.05, speed: 1.00, hasTgt: true, fadePow: 1.0 });
-const stH2O = new Stream({ max: 320, color: 0x5ec4ff, size: 0.051, life: 2.1, jitter: 0.03, speed: 0.85, hasTgt: true, swirl: 0.55 });
-const stSugar = new Stream({ max: 320, color: 0xffdc8a, size: 0.053, life: 2.4, jitter: 0.05, speed: 0.72, hasTgt: true, swirl: 0.25 });
-const stResp = new Stream({ max: 780, color: 0xff8a4a, size: 0.057, life: 3.0, jitter: 0.20, speed: 0.34, fadePow: 1.3, sizeVar: 0.45 });
+/* ---------- 五套流 ----------
+   gain 是 HDR 强度：刚好越过泛光阈值即可。
+   推到 2.0 以上三个通道同时饱和，粒子会变成白点，
+   O₂ 绿 / CO₂ 琥珀的颜色编码就废了——这个课上是要学生分辨的。 */
+const stO2 = new Stream({ max: 700, color: 0x62f2c0, size: 0.050, life: 2.6, jitter: 0.10, speed: 0.80, gain: 1.18 });
+const stCO2 = new Stream({ max: 560, color: 0xffb04a, size: 0.047, life: 2.2, jitter: 0.05, speed: 1.00, hasTgt: true, fadePow: 1.0, gain: 1.16 });
+const stH2O = new Stream({ max: 320, color: 0x5ec4ff, size: 0.043, life: 2.1, jitter: 0.03, speed: 0.85, hasTgt: true, swirl: 0.55, gain: 1.14 });
+const stSugar = new Stream({ max: 320, color: 0xffdc8a, size: 0.043, life: 2.4, jitter: 0.05, speed: 0.72, hasTgt: true, swirl: 0.25, gain: 1.10 });
+const stResp = new Stream({ max: 780, color: 0xff8a4a, size: 0.045, life: 3.0, jitter: 0.20, speed: 0.34, fadePow: 1.3, sizeVar: 0.45, gain: 1.06 });
 
 /* ---------- 发射调度 ---------- */
 const emitAcc = { o2: 0, co2: 0, h2o: 0, sugar: 0, resp: 0 };
@@ -232,7 +243,7 @@ function emitParticles(dt) {
   const gN = clamp(g / 27, 0, 1.15);
 
   /* O₂：叶面逸出，向上扩散 */
-  emitAcc.o2 += 100 * gN * dt;
+  emitAcc.o2 += 82 * gN * dt;
   let c = Math.min(16, Math.floor(emitAcc.o2));
   emitAcc.o2 -= c;
   for (; c > 0; c--) {
@@ -246,7 +257,7 @@ function emitParticles(dt) {
   }
 
   /* CO₂：箱壁 → 叶面 */
-  emitAcc.co2 += 78 * gN * dt;
+  emitAcc.co2 += 64 * gN * dt;
   c = Math.min(14, Math.floor(emitAcc.co2));
   emitAcc.co2 -= c;
   for (; c > 0; c--) {
@@ -259,7 +270,7 @@ function emitParticles(dt) {
   }
 
   /* H₂O：根压驱动上行 */
-  emitAcc.h2o += 40 * gN * dt;
+  emitAcc.h2o += 35 * gN * dt;
   c = Math.min(10, Math.floor(emitAcc.h2o));
   emitAcc.h2o -= c;
   for (; c > 0; c--) {
@@ -270,7 +281,7 @@ function emitParticles(dt) {
   }
 
   /* 有机物：叶 → 根 */
-  emitAcc.sugar += 42 * gN * dt;
+  emitAcc.sugar += 37 * gN * dt;
   c = Math.min(10, Math.floor(emitAcc.sugar));
   emitAcc.sugar -= c;
   for (; c > 0; c--) {
@@ -281,7 +292,7 @@ function emitParticles(dt) {
   }
 
   /* 呼吸 CO₂：全株持续，永不停止 */
-  emitAcc.resp += 19 * r * (State.whole ? 1.0 : 0.82) * dt;
+  emitAcc.resp += 18 * r * (State.whole ? 1.0 : 0.82) * dt;
   c = Math.min(12, Math.floor(emitAcc.resp));
   emitAcc.resp -= c;
   for (; c > 0; c--) {

@@ -114,6 +114,18 @@ function recompute() {
   State.sat = satPoint(State.T, State.C, State.O);
 }
 
+/* ---- 确定性随机 ----
+   xorshift32。植株形态完全由种子决定：每次打开、每台机器的截图
+   逐像素一致，课堂演示不会“今天这株和昨天不一样”。 */
+let _rngState = 0x2f6e2b1;
+function RNG() {
+  _rngState ^= _rngState << 13;
+  _rngState ^= _rngState >>> 17;
+  _rngState ^= _rngState << 5;
+  return (_rngState >>> 0) / 4294967296;
+}
+function seedRNG(s) { _rngState = (s >>> 0) || 0x2f6e2b1; }
+
 /* ---- 小工具 ---- */
 const clamp = (v, a, b) => v < a ? a : (v > b ? b : v);
 const lerp = (a, b, t) => a + (b - a) * t;

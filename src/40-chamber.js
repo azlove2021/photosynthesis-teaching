@@ -3,7 +3,7 @@
    ========================================================= */
 'use strict';
 
-const CHAMBER = { w: 3.00, h: 3.30, d: 2.20, cy: 1.65 };
+const CHAMBER = { w: 3.00, h: 3.02, d: 2.20, cy: 1.51 };
 
 const chamberGroup = new THREE.Group();
 world.add(chamberGroup);
@@ -14,7 +14,7 @@ world.add(chamberGroup);
   const glass = new THREE.MeshPhysicalMaterial({
     color: 0xbfeee0,
     transparent: true,
-    opacity: 0.042,
+    opacity: 0.032,
     roughness: 0.03,
     metalness: 0,
     side: THREE.DoubleSide,
@@ -27,6 +27,45 @@ world.add(chamberGroup);
   box.position.y = CHAMBER.cy;
   box.renderOrder = 6;
   chamberGroup.add(box);
+
+  /* 菲涅尔边缘：玻璃的可读性来自掠射角的反射，不是均匀的灰底。
+     均匀 tint 加多少都像雾，掠射边缘一亮，箱体立刻成立。 */
+  const rimGlass = new THREE.ShaderMaterial({
+    uniforms: {
+      uColor: { value: new THREE.Color(0x9df0dc) },
+      uAmt: { value: 0.085 },
+      uPow: { value: 4.2 }
+    },
+    vertexShader: [
+      'varying vec3 vN;',
+      'varying vec3 vV;',
+      'void main() {',
+      '  vec4 mv = modelViewMatrix * vec4(position, 1.0);',
+      '  vN = normalize(normalMatrix * normal);',
+      '  vV = normalize(-mv.xyz);',
+      '  gl_Position = projectionMatrix * mv;',
+      '}'
+    ].join('\n'),
+    fragmentShader: [
+      'uniform vec3 uColor;',
+      'uniform float uAmt;',
+      'uniform float uPow;',
+      'varying vec3 vN;',
+      'varying vec3 vV;',
+      'void main() {',
+      '  float f = pow(1.0 - clamp(abs(dot(normalize(vN), normalize(vV))), 0.0, 1.0), uPow);',
+      '  gl_FragColor = vec4(uColor * f * uAmt, f * uAmt);',
+      '}'
+    ].join('\n'),
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    side: THREE.FrontSide
+  });
+  const shell = new THREE.Mesh(geo, rimGlass);
+  shell.position.y = CHAMBER.cy;
+  shell.renderOrder = 8;
+  chamberGroup.add(shell);
 
   /* 棱线 */
   const edges = new THREE.LineSegments(
@@ -197,12 +236,12 @@ let dust, dustAttr, dustSeed;
   const pos = new Float32Array(N * 3);
   dustSeed = new Float32Array(N * 3);
   for (let i = 0; i < N; i++) {
-    pos[i * 3] = (Math.random() - 0.5) * 3.0;
-    pos[i * 3 + 1] = 0.2 + Math.random() * 3.2;
-    pos[i * 3 + 2] = (Math.random() - 0.5) * 2.2;
-    dustSeed[i * 3] = 0.3 + Math.random() * 0.7;
-    dustSeed[i * 3 + 1] = 0.4 + Math.random() * 0.8;
-    dustSeed[i * 3 + 2] = Math.random() * 6.2832;
+    pos[i * 3] = (RNG() - 0.5) * 3.0;
+    pos[i * 3 + 1] = 0.2 + RNG() * 3.2;
+    pos[i * 3 + 2] = (RNG() - 0.5) * 2.2;
+    dustSeed[i * 3] = 0.3 + RNG() * 0.7;
+    dustSeed[i * 3 + 1] = 0.4 + RNG() * 0.8;
+    dustSeed[i * 3 + 2] = RNG() * 6.2832;
   }
   const geo = new THREE.BufferGeometry();
   dustAttr = new THREE.BufferAttribute(pos, 3);
@@ -233,7 +272,7 @@ function updateDust(dt, time, lightNorm) {
     if (p[i + 1] > 3.5) p[i + 1] = 0.15;
   }
   dustAttr.needsUpdate = true;
-  dust.material.opacity = 0.06 + lightNorm * 0.30;
+  dust.material.opacity = 0.035 + lightNorm * 0.185;
 }
 
 /* --- 传感器灯随读数变化 --- */
@@ -249,4 +288,11 @@ function updateSensors(netSign, absNet, time) {
   sensorPods.o2.halo.scale.set(h2, h2, 1);
   sensorPods.co2.tip.material.color.setHex(netSign > 0 ? 0xffb454 : 0x8a6a3a);
   sensorPods.o2.tip.material.color.setHex(netSign > 0 ? 0x6ee7c4 : 0x3a6a5c);
+  /* 读数越强，探头越亮 —— 亮度是“示数”的视觉编码，不是装饰。
+     乘到线性 1.0 以上才会被泛光挑出来，读数大时探头自己会发光。 */
+  const hdr = 1.0 + k * 1.9;
+  sensorPods.co2.tip.material.color.multiplyScalar(hdr);
+  sensorPods.o2.tip.material.color.multiplyScalar(hdr);
+  sensorPods.co2.halo.material.color.setHex(netSign > 0 ? 0xffb454 : 0x8a6a3a);
+  sensorPods.o2.halo.material.color.setHex(netSign > 0 ? 0x6ee7c4 : 0x3a6a5c);
 }

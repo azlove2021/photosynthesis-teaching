@@ -10,21 +10,23 @@ const renderer = new THREE.WebGLRenderer({
   powerPreference: 'high-performance'
 });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.8));
-renderer.outputEncoding = THREE.sRGBEncoding;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.96;
+/* 材质不做色调映射、不做 sRGB 编码：场景以线性 HDR 渲进浮点缓冲，
+   曝光 / ACES / 调色 / 编码统一由 15-post.js 的合成阶段负责。
+   两边都做一遍是本项目最容易踩的坑。 */
+renderer.outputEncoding = THREE.LinearEncoding;
+renderer.toneMapping = THREE.NoToneMapping;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0x07100e, 9.5, 20);
+scene.fog = new THREE.Fog(0x030807, 10.5, 22);
 
-const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 100);
+const camera = new THREE.PerspectiveCamera(33, 1, 0.1, 100);
 
 /* ---- 自建轨道控制（不引入 OrbitControls，保持单文件） ---- */
 const Orbit = {
-  az: 0.34, pol: 1.245, dist: 6.35,
-  taz: 0.34, tpol: 1.245, tdist: 6.35,
+  az: 0.34, pol: 1.255, dist: 5.45,
+  taz: 0.34, tpol: 1.255, tdist: 5.45,
   target: new THREE.Vector3(0, 1.50, 0),
   autoIdle: 0,
   dragging: false,
@@ -42,7 +44,7 @@ function applyCamera() {
 }
 
 function resetCamera() {
-  Orbit.taz = 0.34; Orbit.tpol = 1.245; Orbit.tdist = 6.35;
+  Orbit.taz = 0.34; Orbit.tpol = 1.255; Orbit.tdist = 5.45;
 }
 
 glCanvas.addEventListener('pointerdown', e => {
@@ -87,7 +89,7 @@ scene.add(sun);
 scene.add(sun.target);
 sun.target.position.set(0, 1.5, 0);
 
-const rim = new THREE.DirectionalLight(0x6fb2ff, 0.62);
+const rim = new THREE.DirectionalLight(0x6fb2ff, 0.88);
 rim.position.set(-4.6, 2.6, -3.8);
 scene.add(rim);
 
@@ -109,9 +111,12 @@ scene.add(world);
   c.width = c.height = 512;
   const g = c.getContext('2d');
   const rg = g.createRadialGradient(256, 256, 20, 256, 256, 256);
-  rg.addColorStop(0, '#1b3a31');
-  rg.addColorStop(0.45, '#122720');
-  rg.addColorStop(1, '#060d0b');
+  /* 地面是一片摄影棚式的暗色衰减：中心留一点可读的绿，
+     边缘迅速压到黑，这样 ACES 的暗部抬升不会把整块地抬成亮青色 */
+  rg.addColorStop(0, '#16281f');
+  rg.addColorStop(0.28, '#0b1713');
+  rg.addColorStop(0.55, '#050c0a');
+  rg.addColorStop(1, '#000000');
   g.fillStyle = rg;
   g.fillRect(0, 0, 512, 512);
   const tex = new THREE.CanvasTexture(c);
@@ -137,5 +142,6 @@ function resize() {
   camera.updateProjectionMatrix();
   applyCamera();
   if (typeof updatePointScale === 'function') updatePointScale();
+  if (typeof resizePost === 'function') resizePost();
 }
 window.addEventListener('resize', resize);

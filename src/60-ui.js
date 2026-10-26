@@ -290,7 +290,11 @@ let chartTimer = 0;
 
 function frame() {
   requestAnimationFrame(frame);
-  const dt = Math.min(clock.getDelta(), 0.055);
+  stepFrame(Math.min(clock.getDelta(), 0.055));
+}
+
+/* 单帧推进：不排 rAF，方便截图脚本同步预热到稳定态 */
+function stepFrame(dt) {
   State.t += dt;
 
   /* 相机 */
@@ -311,9 +315,10 @@ function frame() {
   const ln = clamp(State.I / PHYS.iMax, 0, 1);
   sun.intensity = 0.25 + ln * 1.95;
   hemi.intensity = 0.34 + ln * 0.28;
-  beamMesh.material.opacity = 0.030 + ln * 0.22;
-  sunSprite.material.opacity = 0.18 + ln * 0.8;
-  const ss = 1.15 + ln * 0.85;
+  /* 光柱和日冕都是加色图层，在 HDR 里会连片泛光，必须克制 */
+  beamMesh.material.opacity = 0.022 + ln * 0.125;
+  sunSprite.material.opacity = 0.12 + ln * 0.52;
+  const ss = 1.02 + ln * 0.62;
   sunSprite.scale.set(ss, ss, 1);
   rootGlow.intensity = clamp(State.rates.resp / 5, 0, 1.2) * 0.55;
 
@@ -331,8 +336,11 @@ function frame() {
   chartTimer += dt;
   if (chartTimer > 0.06) { chartTimer = 0; drawChart(); narrate(); }
 
-  renderer.render(scene, camera);
+  /* 出图：交给合成管线（HDR → 泛光 → 曝光 → 调色） */
+  renderScene(dt);
 }
+
+window.__warmFrame = stepFrame;
 
 /* ---------- 启动 ---------- */
 function boot() {
