@@ -94,8 +94,11 @@ body{
 /* 右上角暖光：光照方向的可读提示，画在画布之上、UI 之下。
    透明度由 JS 跟随光强变化——拉到 0 时这一角完全冷掉。 */
 .stage-glow{
+  /* 跟着吊灯走：灯在画面顶部中央，这层暖雾就必须落在顶部中央，
+     否则会和三维场景里的灯"两个方向发光"，一眼就假。
+     它只做屏幕空间的一层薄雾，不参与出图，也不承担"光强"的读数。 */
   position:absolute;inset:0;pointer-events:none;z-index:1;
-  background:radial-gradient(circle at 94% 2%, rgba(255,201,128,.52), rgba(255,201,128,0) 34%);
+  background:radial-gradient(circle at 50% 3%, rgba(255,206,140,.46), rgba(255,206,140,0) 31%);
   transition:opacity .4s linear;
 }
 .hud{z-index:3}

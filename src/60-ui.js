@@ -317,14 +317,23 @@ function stepFrame(dt) {
     State.O + (State.chamberO2 - State.O) * Math.exp(-dt / 42) + net * 0.0009 * dt, 3, 60);
 
   /* 光照视觉。浅底场景里"变暗"不能靠把画面压黑——底板始终是白的，
-     太阳光只负责植株的明暗与投影，所以动态范围收窄、底噪抬高，
+     灯只负责植株的明暗、灯下的光池与投影，所以动态范围收窄、底噪抬高，
      黑暗中仍能看清叶片结构（这也是暗态还要观察呼吸流的前提）。 */
   const ln = clamp(State.I / PHYS.iMax, 0, 1);
-  sun.intensity = 0.30 + ln * 1.05;
-  hemi.intensity = 0.58 + ln * 0.22;
-  /* 光照强度不再用三维光柱表达（见 40-chamber.js 说明），
-     改为舞台右上角的暖光角 + 「实验条件」卡片。 */
-  if (el.stageGlow) el.stageGlow.style.opacity = (0.06 + ln * 0.94).toFixed(3);
+  /* 感知曲线：课堂上真正在用的区间是 200–1200，线性映射会让 800 只走到
+     四成，灯看起来像"半开"；开方之后 800 → 0.67，滑杆的手感才对得上
+     "我在加阳光"这件事。 */
+  const lp = Math.pow(ln, 0.45);
+
+  /* 主光就是灯本身：强度、色温、光晕、灯罩内壁、地面光池同源。
+     强度上限压在 0.80：再高地面会被打到接近白（中性曲线肩部 0.855 以上），
+     又回到"太白"的老问题上，光池的边界也就没了。 */
+  keyLight.intensity = 0.05 + lp * 2.05;
+  hemi.intensity = 0.62 + lp * 0.10;
+  setLampLevel(lp);
+
+  /* 舞台右上那层暖光角只是屏幕空间的一层薄雾，位置跟着灯走（顶部中央） */
+  if (el.stageGlow) el.stageGlow.style.opacity = (0.04 + lp * 0.52).toFixed(3);
   rootGlow.intensity = clamp(State.rates.resp / 5, 0, 1.2) * 0.30;
 
   /* 植株与粒子 */

@@ -28,9 +28,13 @@ scene.fog = new THREE.Fog(scene.background.clone(), 13.5, 30);
 const camera = new THREE.PerspectiveCamera(33, 1, 0.1, 100);
 
 /* ---- 自建轨道控制（不引入 OrbitControls，保持单文件） ---- */
+/* dist 6.90 → 7.30：吊装日光灯要在箱盖之上才成立，而当前取景的顶边
+   几乎就落在相机眼高上（俯角 18°、纵向 fov 36°，顶边 ≈ 水平线），
+   箱盖往上的可用画面只有几十像素。退 6% 之后灯罩顶部仍留 ~20 px，
+   灯管下沿与箱盖之间留出 ~22 px 的空隙，同时地面多露一点、光池更显。 */
 const Orbit = {
-  az: 0.34, pol: 1.255, dist: 6.90,
-  taz: 0.34, tpol: 1.255, tdist: 6.90,
+  az: 0.34, pol: 1.255, dist: 7.30,
+  taz: 0.34, tpol: 1.255, tdist: 7.30,
   target: new THREE.Vector3(0, 1.45, 0),
   autoIdle: 0,
   dragging: false,
@@ -48,7 +52,7 @@ function applyCamera() {
 }
 
 function resetCamera() {
-  Orbit.taz = 0.34; Orbit.tpol = 1.255; Orbit.tdist = 6.90;
+  Orbit.taz = 0.34; Orbit.tpol = 1.255; Orbit.tdist = 7.30;
 }
 
 glCanvas.addEventListener('pointerdown', e => {
@@ -76,32 +80,47 @@ glCanvas.addEventListener('dblclick', resetCamera);
 /* ---- 灯光 ----
    浅底场景的照明逻辑与暗场相反：环境光必须托住"地板"，否则
    光强拉到 0 时植株会变成白底上的一块黑影，学生看不清结构。
-   所以 hemi 的底噪拉高，太阳光的动态范围收窄。 */
-const hemi = new THREE.HemisphereLight(0xffffff, 0xcbdbea, 0.95);
+   所以 hemi 的底噪拉高，主光的动态范围收窄。
+
+   主光从平行光换成了**吊装日光灯位置上的聚光灯**，原因有三条：
+   ① 平行光没有位置，地面不会出现"灯下的那个光池"，光强一变只是
+      整片地面一起变亮，看不出"是灯在照"；而光池是这盏灯存在的证据。
+   ② 投影方向必须由灯决定。平行光的投影角度和画面上那盏灯是两套
+      独立的参数，学生一拖视角就会发现影子不是从灯里出来的。
+   ③ 聚光灯自带锥角与半影，光池边缘天然是软的，不用再做假的光斑贴图。
+   于是光池、投影、灯具外观三者严格同源，滑杆一动三者一起变。 */
+const hemi = new THREE.HemisphereLight(0xffffff, 0xcbdbea, 0.86);
 scene.add(hemi);
 
-const sun = new THREE.DirectionalLight(0xfff7ec, 2.0);
-sun.position.set(3.6, 6.8, 2.8);
-sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
-sun.shadow.camera.left = -3.2;
-sun.shadow.camera.right = 3.2;
-sun.shadow.camera.top = 4.2;
-sun.shadow.camera.bottom = -0.6;
-sun.shadow.camera.near = 1;
-sun.shadow.camera.far = 16;
-sun.shadow.bias = -0.0004;
-sun.shadow.normalBias = 0.022;
-scene.add(sun);
-scene.add(sun.target);
-sun.target.position.set(0, 1.5, 0);
+/* 灯具位置在 42-lamp.js 里也引用同一组常量，两边不能各自写死 */
+const LAMP = {
+  x: 0, y: 3.385, z: 0.62,    /* 灯管中心（略偏前，主光前倾 ~22°） */
+  aim: new THREE.Vector3(0, 1.42, -0.16)
+};
+
+/* distance / decay 这一对参数不能随手写成 0：
+   three.js r149 的 getDistanceAttenuation 在 distance === 0 时**直接返回 1.0**，
+   decay 形同虚设。第一版就是这么写的，结果地面被主光按满强度打爆回 254，
+   和"降低眩光"的目标正好相反。给一个有限 distance 之后
+   pow(1 - d/distance, decay) 才成立，灯下的光池才有远近衰减。 */
+const keyLight = new THREE.SpotLight(0xfff0cf, 0.6, 16, 0.62, 0.35, 2.0);
+keyLight.position.set(LAMP.x, LAMP.y, LAMP.z);
+keyLight.target.position.copy(LAMP.aim);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(2048, 2048);
+keyLight.shadow.camera.near = 0.6;
+keyLight.shadow.camera.far = 10;
+keyLight.shadow.bias = -0.0006;
+keyLight.shadow.normalBias = 0.020;
+scene.add(keyLight);
+scene.add(keyLight.target);
 
 /* 蓝色补边：白底上靠冷边把植株轮廓从背景里"切"出来 */
-const rim = new THREE.DirectionalLight(0x9dc8f5, 0.72);
+const rim = new THREE.DirectionalLight(0xa8cdf3, 0.62);
 rim.position.set(-4.6, 2.6, -3.8);
 scene.add(rim);
 
-const fillPoint = new THREE.PointLight(0xcfe2f4, 0.40, 14, 2);
+const fillPoint = new THREE.PointLight(0xcfe2f4, 0.32, 14, 2);
 fillPoint.position.set(0, 1.1, -3.0);
 scene.add(fillPoint);
 
@@ -113,25 +132,38 @@ scene.add(rootGlow);
 const world = new THREE.Group();
 scene.add(world);
 
-/* ---- 地面 ---- */
+/* ---- 地面 ----
+   这里改的是**反照率**，不是曝光。
+   旧版贴图中心是 #ffffff（线性 1.0），在 I=800 时地面线性值被推到 1.27、
+   I=2000 时 1.92，两者都超过中性曲线的肩部 0.855，于是双双被压到 254——
+   地面在暗态和满光下是同一种白：既刺眼，又完全不反映光强。
+   把反照率压到约 0.50 线性（#bccddd）之后，地面落在 #bc(暗) ~ #dd(满光)
+   这一段，主光才有了"还能更亮"的余量，灯下的光池才可能出现。
+   边缘用 alpha 渐隐而不用雾去藏：地面变暗之后，靠"光照凑到背景色"
+   已经不可能成立（反照率 0.5 怎么打光都到不了 #eef4fb），
+   只有让不透明度自己归零，圆盘边界才会真正消失。 */
 (function buildGround() {
+  const S = 1024;
   const c = document.createElement('canvas');
-  c.width = c.height = 512;
+  c.width = c.height = S;
   const g = c.getContext('2d');
-  const rg = g.createRadialGradient(256, 256, 20, 256, 256, 250);
-  /* 摄影棚式无边地面：中心纯白，向外渐变成和背景同一个浅蓝。
-     最外圈必须落在背景色上，否则圆盘边缘会留一道弧线。 */
-  rg.addColorStop(0, '#ffffff');
-  rg.addColorStop(0.34, '#f7fbfe');
-  rg.addColorStop(0.66, '#edf3fa');
-  rg.addColorStop(1, '#e7eff8');
+  const rg = g.createRadialGradient(S / 2, S / 2, S * 0.02, S / 2, S / 2, S * 0.5);
+  rg.addColorStop(0.00, 'rgba(172,174,178,1)');
+  rg.addColorStop(0.26, 'rgba(169,171,176,1)');
+  rg.addColorStop(0.46, 'rgba(172,174,178,0.94)');
+  rg.addColorStop(0.64, 'rgba(178,180,184,0.66)');
+  rg.addColorStop(0.80, 'rgba(184,186,190,0.28)');
+  rg.addColorStop(1.00, 'rgba(190,192,196,0)');
   g.fillStyle = rg;
-  g.fillRect(0, 0, 512, 512);
+  g.fillRect(0, 0, S, S);
   const tex = new THREE.CanvasTexture(c);
   tex.encoding = THREE.sRGBEncoding;
   const disc = new THREE.Mesh(
-    new THREE.CircleGeometry(9, 64),
-    new THREE.MeshStandardMaterial({ map: tex, roughness: 0.97, metalness: 0 })
+    new THREE.CircleGeometry(9, 96),
+    new THREE.MeshStandardMaterial({
+      map: tex, roughness: 0.965, metalness: 0,
+      transparent: true, depthWrite: true
+    })
   );
   disc.rotation.x = -Math.PI / 2;
   disc.position.y = -0.02;

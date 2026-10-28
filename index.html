@@ -101,8 +101,11 @@ body{
 /* 右上角暖光：光照方向的可读提示，画在画布之上、UI 之下。
    透明度由 JS 跟随光强变化——拉到 0 时这一角完全冷掉。 */
 .stage-glow{
+  /* 跟着吊灯走：灯在画面顶部中央，这层暖雾就必须落在顶部中央，
+     否则会和三维场景里的灯"两个方向发光"，一眼就假。
+     它只做屏幕空间的一层薄雾，不参与出图，也不承担"光强"的读数。 */
   position:absolute;inset:0;pointer-events:none;z-index:1;
-  background:radial-gradient(circle at 94% 2%, rgba(255,201,128,.52), rgba(255,201,128,0) 34%);
+  background:radial-gradient(circle at 50% 3%, rgba(255,206,140,.46), rgba(255,206,140,0) 31%);
   transition:opacity .4s linear;
 }
 .hud{z-index:3}
@@ -745,9 +748,13 @@ scene.fog = new THREE.Fog(scene.background.clone(), 13.5, 30);
 const camera = new THREE.PerspectiveCamera(33, 1, 0.1, 100);
 
 /* ---- 自建轨道控制（不引入 OrbitControls，保持单文件） ---- */
+/* dist 6.90 → 7.30：吊装日光灯要在箱盖之上才成立，而当前取景的顶边
+   几乎就落在相机眼高上（俯角 18°、纵向 fov 36°，顶边 ≈ 水平线），
+   箱盖往上的可用画面只有几十像素。退 6% 之后灯罩顶部仍留 ~20 px，
+   灯管下沿与箱盖之间留出 ~22 px 的空隙，同时地面多露一点、光池更显。 */
 const Orbit = {
-  az: 0.34, pol: 1.255, dist: 6.90,
-  taz: 0.34, tpol: 1.255, tdist: 6.90,
+  az: 0.34, pol: 1.255, dist: 7.30,
+  taz: 0.34, tpol: 1.255, tdist: 7.30,
   target: new THREE.Vector3(0, 1.45, 0),
   autoIdle: 0,
   dragging: false,
@@ -765,7 +772,7 @@ function applyCamera() {
 }
 
 function resetCamera() {
-  Orbit.taz = 0.34; Orbit.tpol = 1.255; Orbit.tdist = 6.90;
+  Orbit.taz = 0.34; Orbit.tpol = 1.255; Orbit.tdist = 7.30;
 }
 
 glCanvas.addEventListener('pointerdown', e => {
@@ -793,32 +800,47 @@ glCanvas.addEventListener('dblclick', resetCamera);
 /* ---- 灯光 ----
    浅底场景的照明逻辑与暗场相反：环境光必须托住"地板"，否则
    光强拉到 0 时植株会变成白底上的一块黑影，学生看不清结构。
-   所以 hemi 的底噪拉高，太阳光的动态范围收窄。 */
-const hemi = new THREE.HemisphereLight(0xffffff, 0xcbdbea, 0.95);
+   所以 hemi 的底噪拉高，主光的动态范围收窄。
+
+   主光从平行光换成了**吊装日光灯位置上的聚光灯**，原因有三条：
+   ① 平行光没有位置，地面不会出现"灯下的那个光池"，光强一变只是
+      整片地面一起变亮，看不出"是灯在照"；而光池是这盏灯存在的证据。
+   ② 投影方向必须由灯决定。平行光的投影角度和画面上那盏灯是两套
+      独立的参数，学生一拖视角就会发现影子不是从灯里出来的。
+   ③ 聚光灯自带锥角与半影，光池边缘天然是软的，不用再做假的光斑贴图。
+   于是光池、投影、灯具外观三者严格同源，滑杆一动三者一起变。 */
+const hemi = new THREE.HemisphereLight(0xffffff, 0xcbdbea, 0.86);
 scene.add(hemi);
 
-const sun = new THREE.DirectionalLight(0xfff7ec, 2.0);
-sun.position.set(3.6, 6.8, 2.8);
-sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
-sun.shadow.camera.left = -3.2;
-sun.shadow.camera.right = 3.2;
-sun.shadow.camera.top = 4.2;
-sun.shadow.camera.bottom = -0.6;
-sun.shadow.camera.near = 1;
-sun.shadow.camera.far = 16;
-sun.shadow.bias = -0.0004;
-sun.shadow.normalBias = 0.022;
-scene.add(sun);
-scene.add(sun.target);
-sun.target.position.set(0, 1.5, 0);
+/* 灯具位置在 42-lamp.js 里也引用同一组常量，两边不能各自写死 */
+const LAMP = {
+  x: 0, y: 3.385, z: 0.62,    /* 灯管中心（略偏前，主光前倾 ~22°） */
+  aim: new THREE.Vector3(0, 1.42, -0.16)
+};
+
+/* distance / decay 这一对参数不能随手写成 0：
+   three.js r149 的 getDistanceAttenuation 在 distance === 0 时**直接返回 1.0**，
+   decay 形同虚设。第一版就是这么写的，结果地面被主光按满强度打爆回 254，
+   和"降低眩光"的目标正好相反。给一个有限 distance 之后
+   pow(1 - d/distance, decay) 才成立，灯下的光池才有远近衰减。 */
+const keyLight = new THREE.SpotLight(0xfff0cf, 0.6, 16, 0.62, 0.35, 2.0);
+keyLight.position.set(LAMP.x, LAMP.y, LAMP.z);
+keyLight.target.position.copy(LAMP.aim);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(2048, 2048);
+keyLight.shadow.camera.near = 0.6;
+keyLight.shadow.camera.far = 10;
+keyLight.shadow.bias = -0.0006;
+keyLight.shadow.normalBias = 0.020;
+scene.add(keyLight);
+scene.add(keyLight.target);
 
 /* 蓝色补边：白底上靠冷边把植株轮廓从背景里"切"出来 */
-const rim = new THREE.DirectionalLight(0x9dc8f5, 0.72);
+const rim = new THREE.DirectionalLight(0xa8cdf3, 0.62);
 rim.position.set(-4.6, 2.6, -3.8);
 scene.add(rim);
 
-const fillPoint = new THREE.PointLight(0xcfe2f4, 0.40, 14, 2);
+const fillPoint = new THREE.PointLight(0xcfe2f4, 0.32, 14, 2);
 fillPoint.position.set(0, 1.1, -3.0);
 scene.add(fillPoint);
 
@@ -830,25 +852,38 @@ scene.add(rootGlow);
 const world = new THREE.Group();
 scene.add(world);
 
-/* ---- 地面 ---- */
+/* ---- 地面 ----
+   这里改的是**反照率**，不是曝光。
+   旧版贴图中心是 #ffffff（线性 1.0），在 I=800 时地面线性值被推到 1.27、
+   I=2000 时 1.92，两者都超过中性曲线的肩部 0.855，于是双双被压到 254——
+   地面在暗态和满光下是同一种白：既刺眼，又完全不反映光强。
+   把反照率压到约 0.50 线性（#bccddd）之后，地面落在 #bc(暗) ~ #dd(满光)
+   这一段，主光才有了"还能更亮"的余量，灯下的光池才可能出现。
+   边缘用 alpha 渐隐而不用雾去藏：地面变暗之后，靠"光照凑到背景色"
+   已经不可能成立（反照率 0.5 怎么打光都到不了 #eef4fb），
+   只有让不透明度自己归零，圆盘边界才会真正消失。 */
 (function buildGround() {
+  const S = 1024;
   const c = document.createElement('canvas');
-  c.width = c.height = 512;
+  c.width = c.height = S;
   const g = c.getContext('2d');
-  const rg = g.createRadialGradient(256, 256, 20, 256, 256, 250);
-  /* 摄影棚式无边地面：中心纯白，向外渐变成和背景同一个浅蓝。
-     最外圈必须落在背景色上，否则圆盘边缘会留一道弧线。 */
-  rg.addColorStop(0, '#ffffff');
-  rg.addColorStop(0.34, '#f7fbfe');
-  rg.addColorStop(0.66, '#edf3fa');
-  rg.addColorStop(1, '#e7eff8');
+  const rg = g.createRadialGradient(S / 2, S / 2, S * 0.02, S / 2, S / 2, S * 0.5);
+  rg.addColorStop(0.00, 'rgba(172,174,178,1)');
+  rg.addColorStop(0.26, 'rgba(169,171,176,1)');
+  rg.addColorStop(0.46, 'rgba(172,174,178,0.94)');
+  rg.addColorStop(0.64, 'rgba(178,180,184,0.66)');
+  rg.addColorStop(0.80, 'rgba(184,186,190,0.28)');
+  rg.addColorStop(1.00, 'rgba(190,192,196,0)');
   g.fillStyle = rg;
-  g.fillRect(0, 0, 512, 512);
+  g.fillRect(0, 0, S, S);
   const tex = new THREE.CanvasTexture(c);
   tex.encoding = THREE.sRGBEncoding;
   const disc = new THREE.Mesh(
-    new THREE.CircleGeometry(9, 64),
-    new THREE.MeshStandardMaterial({ map: tex, roughness: 0.97, metalness: 0 })
+    new THREE.CircleGeometry(9, 96),
+    new THREE.MeshStandardMaterial({
+      map: tex, roughness: 0.965, metalness: 0,
+      transparent: true, depthWrite: true
+    })
   );
   disc.rotation.x = -Math.PI / 2;
   disc.position.y = -0.02;
@@ -2470,12 +2505,11 @@ const sensorPods = {};
    白底上加法无从生效，改乘算又会因为锥壳的轮廓线在画面上留下一块
    边缘生硬的暖色多边形——试过 0.25/0.45/0.75 三档，最淡的一档也还是一块脏色。
 
-   更根本的问题是：光照强度是这个课的主变量，它的表达应当落在"读数"上，
-   而不是落在体积光这种氛围元素上。所以三维光柱整段去掉，
-   改由 ① 舞台右上角的 CSS 暖光角（纯装饰，不参与出图）
-       ② 常驻的「实验条件」卡片（光照 / 温度，纯净投影下也看得见）
-   两处共同承担。
-   叶片明暗本身由 60-ui.js 的 sun/hemi 强度直接驱动，随滑杆实时变化。 */
+   更根本的问题是：光照强度是这个课的主变量，它的表达应当落在"可见的
+   因果"上，而不是落在体积光这种氛围元素上。现在这条因果由画面里那盏
+   吊装日光灯承担（42-lamp.js）：灯管亮起来、灯罩内壁被烤暖、
+   地面浮出光池、投影角度跟着灯走。体积光也就不需要了。
+   叶片明暗本身由 60-ui.js 的 keyLight / hemi 强度直接驱动，随滑杆实时变化。 */
 
 /* --- 浮尘（空气里有东西在动，箱体才不像一张纸） --- */
 let dust, dustAttr, dustSeed;
@@ -2541,6 +2575,187 @@ function updateSensors(netSign, absNet, time) {
   sensorPods.co2.halo.material.color.setHex(netSign > 0 ? 0xe89a3c : 0xb0a08a);
   sensorPods.o2.halo.material.color.setHex(netSign > 0 ? 0x2fb37f : 0x8aa8a0);
 }
+
+/* ---- 42-lamp.js ---- */
+/* =========================================================
+   42 · 吊装条形日光灯
+   ---------------------------------------------------------
+   为什么灯必须是"实体"，而且必须与主光同源：
+   浅色场景里"更亮"几乎没有余量可用（白底已经顶到 255），光强的变化
+   只能靠**可见的因果**传达——灯管亮起来、灯下浮起一层暖晕、地面上
+   铺开一块光池、投影的角度跟着灯走。光源如果在画面之外，学生看到的
+   只是"画面整体变亮了"，那是曝光变了，不是灯变了。
+   灯在画面里，因果才闭合。
+
+   几何上有一个必须让步的地方：相机眼高 3.775，灯管在 3.385，也就是
+   镜头几乎与灯**齐平**、只高出 3.2°。这种视高下，任何"罩在灯管上方、
+   半径大于灯管"的反光罩都会从正面把灯管整个挡住——第一版做成
+   r=0.176 的半圆槽，导出的图上只剩下一条灰色大板和底下一线暖色。
+   所以灯罩压到 r=0.115（管径的 2.7 倍，接近真实灯具比例），
+   并且把灯管**下移到罩口以下**：罩沿在 +0.055，灯管顶在 +0.042，
+   整根管子都露在罩外，罩只负责"压在头顶"这个语义。
+
+   反馈通道（都由归一化电平 lp 驱动，见 setLampLevel）：
+     ① 灯管本体   ：冷灰玻璃 → 暖白（色温比亮度更能说明"在工作"）
+     ② 灯管光晕   ：白底上加不出亮度，只能加"暖色团"，尺寸与实度一起长
+     ③ 灯罩内壁   ：齐平时只看得到罩沿一线暖边，聊胜于无，但便宜
+     ④ 灯下柔晕   ：极低不透明度的暖色 Sprite，给灯下一层空气感
+     ⑤ 地面光池   ：由 10-scene.js 的 keyLight（SpotLight）真实投出
+   ========================================================= */
+'use strict';
+
+const LAMPFIX = {
+  halfLen: 0.65,      /* 灯管半长（总长 1.30，箱宽 3.0 的 43%） */
+  tubeR: 0.042,
+  hoodR: 0.115,       /* 再大就会在正面把灯管挡住，见文件头说明 */
+  rimLift: 0.055,     /* 罩沿高出灯管中心多少 */
+  capLen: 0.070
+};
+
+const lampRig = new THREE.Group();
+lampRig.position.set(LAMP.x, LAMP.y, LAMP.z);
+scene.add(lampRig);
+
+/* ---- 灯管 ---- */
+const C_TUBE_OFF = new THREE.Color(0x6f7d8b);
+const C_TUBE_ON = new THREE.Color(0xfff4d4);
+const C_HOOD_OFF = new THREE.Color(0x7c8996);
+const C_HOOD_ON = new THREE.Color(0xffdfa8);
+
+const lampTubeMat = new THREE.MeshBasicMaterial({ color: C_TUBE_OFF.clone() });
+const lampTube = new THREE.Mesh(
+  new THREE.CylinderGeometry(LAMPFIX.tubeR, LAMPFIX.tubeR, LAMPFIX.halfLen * 2, 20, 1, false),
+  lampTubeMat
+);
+lampTube.rotation.z = Math.PI / 2;
+lampRig.add(lampTube);
+
+/* ---- 两端灯脚 ---- */
+const lampCapMat = new THREE.MeshStandardMaterial({
+  color: 0x8e9dad, roughness: 0.42, metalness: 0.62
+});
+[-1, 1].forEach(function (s) {
+  const cap = new THREE.Mesh(
+    new THREE.CylinderGeometry(LAMPFIX.tubeR + 0.012, LAMPFIX.tubeR + 0.012,
+      LAMPFIX.capLen, 16),
+    lampCapMat
+  );
+  cap.rotation.z = Math.PI / 2;
+  cap.position.x = s * (LAMPFIX.halfLen + LAMPFIX.capLen / 2 - 0.004);
+  lampRig.add(cap);
+});
+
+/* ---- 反光罩（上半圆槽，开口朝下，整体抬到灯管之上） ----
+   CylinderGeometry 的轴是 Y，theta 0..π 取 x≥0 那半边；
+   rotateZ(-π/2) 把 (x,y,z) 映射成 (y,-x,z)：轴转到 X、x≥0 那半变成 y≥0。
+   于是得到长度沿 X、覆盖上半、开口朝下的反光槽。 */
+const hoodLen = LAMPFIX.halfLen * 2 + 0.16;
+const hoodY = LAMPFIX.rimLift;
+
+function hoodShell(r, len) {
+  const g = new THREE.CylinderGeometry(r, r, len, 30, 1, true, Math.PI, Math.PI);
+  g.rotateZ(-Math.PI / 2);
+  return g;
+}
+
+/* 外壁：正面渲染，从下方看不见 */
+const lampHoodOutMat = new THREE.MeshStandardMaterial({
+  color: 0xdae5f0, roughness: 0.34, metalness: 0.5, side: THREE.FrontSide
+});
+const hoodOut = new THREE.Mesh(hoodShell(LAMPFIX.hoodR, hoodLen), lampHoodOutMat);
+hoodOut.position.y = hoodY;
+lampRig.add(hoodOut);
+
+/* 内壁：略缩一圈、背面渲染。这一层被自己的灯管照亮，交给场景灯算不出来 */
+const lampHoodInMat = new THREE.MeshBasicMaterial({
+  color: C_HOOD_OFF.clone(), side: THREE.BackSide
+});
+const hoodIn = new THREE.Mesh(hoodShell(LAMPFIX.hoodR - 0.007, hoodLen - 0.012), lampHoodInMat);
+hoodIn.position.y = hoodY;
+lampRig.add(hoodIn);
+
+/* 两端封板 */
+const lampPlateMat = new THREE.MeshStandardMaterial({
+  color: 0xcfdbe7, roughness: 0.38, metalness: 0.45, side: THREE.DoubleSide
+});
+[-1, 1].forEach(function (s) {
+  const pg = new THREE.CircleGeometry(LAMPFIX.hoodR, 20, 0, Math.PI);
+  pg.rotateY(Math.PI / 2);
+  const plate = new THREE.Mesh(pg, lampPlateMat);
+  plate.position.set(s * (hoodLen / 2), hoodY, 0);
+  lampRig.add(plate);
+});
+
+/* ---- 吊杆（伸出画面，说明"这盏灯挂在天花板上"） ---- */
+const lampRodMat = new THREE.MeshStandardMaterial({
+  color: 0xafbdcc, roughness: 0.32, metalness: 0.7
+});
+[-0.44, 0.44].forEach(function (x) {
+  const rodTop = hoodY + LAMPFIX.hoodR;
+  const rod = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.0105, 0.0105, 1.80, 8), lampRodMat);
+  rod.position.set(x, rodTop + 0.90, 0);
+  lampRig.add(rod);
+  const nut = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.024, 0.024, 0.030, 12), lampCapMat);
+  nut.position.set(x, rodTop + 0.012, 0);
+  lampRig.add(nut);
+});
+
+/* ---- 光晕 / 灯下柔晕 ---- */
+function softBlob(stops) {
+  const S = 128;
+  const c = document.createElement('canvas');
+  c.width = c.height = S;
+  const g = c.getContext('2d');
+  const rg = g.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+  stops.forEach(function (s) { rg.addColorStop(s[0], s[1]); });
+  g.fillStyle = rg;
+  g.fillRect(0, 0, S, S);
+  return new THREE.CanvasTexture(c);
+}
+
+const HALO_TEX = softBlob([
+  [0.00, 'rgba(255,255,255,0.96)'],
+  [0.30, 'rgba(255,255,255,0.60)'],
+  [0.58, 'rgba(255,255,255,0.22)'],
+  [0.80, 'rgba(255,255,255,0.06)'],
+  [1.00, 'rgba(255,255,255,0)']
+]);
+
+const lampHalo = new THREE.Sprite(new THREE.SpriteMaterial({
+  map: HALO_TEX, color: 0xffb84d, transparent: true, opacity: 0,
+  blending: THREE.NormalBlending, depthWrite: false, fog: false
+}));
+lampHalo.scale.set(1.55, 0.34, 1);
+lampRig.add(lampHalo);
+
+const lampHaze = new THREE.Sprite(new THREE.SpriteMaterial({
+  map: HALO_TEX, color: 0xffd79a, transparent: true, opacity: 0,
+  blending: THREE.NormalBlending, depthWrite: false, fog: false
+}));
+lampHaze.scale.set(3.00, 1.90, 1);
+lampHaze.position.set(0, -0.66, 0.08);
+lampRig.add(lampHaze);
+
+/* ---- 由 60-ui.js 每帧调用 ---- */
+function setLampLevel(lp) {
+  const k = clamp(lp, 0, 1);
+  const k2 = k * k;
+
+  lampTubeMat.color.copy(C_TUBE_OFF).lerp(C_TUBE_ON, k);
+  lampHoodInMat.color.copy(C_HOOD_OFF).lerp(C_HOOD_ON, k);
+
+  /* 白底上加不出亮度，只能加暖色团；尺寸与实度一起长，
+     "灯开得更足"这件事才有可读的幅度 */
+  lampHalo.material.opacity = 0.84 * k2;
+  lampHalo.scale.set(1.48 + k * 1.15, 0.30 + k * 0.52, 1);
+
+  lampHaze.material.opacity = 0.10 * k2;
+  lampHaze.scale.set(2.80 + k * 0.95, 1.75 + k * 0.65, 1);
+}
+
+setLampLevel(0);
 
 /* ---- 50-curve.js ---- */
 /* =========================================================
@@ -3189,14 +3404,23 @@ function stepFrame(dt) {
     State.O + (State.chamberO2 - State.O) * Math.exp(-dt / 42) + net * 0.0009 * dt, 3, 60);
 
   /* 光照视觉。浅底场景里"变暗"不能靠把画面压黑——底板始终是白的，
-     太阳光只负责植株的明暗与投影，所以动态范围收窄、底噪抬高，
+     灯只负责植株的明暗、灯下的光池与投影，所以动态范围收窄、底噪抬高，
      黑暗中仍能看清叶片结构（这也是暗态还要观察呼吸流的前提）。 */
   const ln = clamp(State.I / PHYS.iMax, 0, 1);
-  sun.intensity = 0.30 + ln * 1.05;
-  hemi.intensity = 0.58 + ln * 0.22;
-  /* 光照强度不再用三维光柱表达（见 40-chamber.js 说明），
-     改为舞台右上角的暖光角 + 「实验条件」卡片。 */
-  if (el.stageGlow) el.stageGlow.style.opacity = (0.06 + ln * 0.94).toFixed(3);
+  /* 感知曲线：课堂上真正在用的区间是 200–1200，线性映射会让 800 只走到
+     四成，灯看起来像"半开"；开方之后 800 → 0.67，滑杆的手感才对得上
+     "我在加阳光"这件事。 */
+  const lp = Math.pow(ln, 0.45);
+
+  /* 主光就是灯本身：强度、色温、光晕、灯罩内壁、地面光池同源。
+     强度上限压在 0.80：再高地面会被打到接近白（中性曲线肩部 0.855 以上），
+     又回到"太白"的老问题上，光池的边界也就没了。 */
+  keyLight.intensity = 0.05 + lp * 2.05;
+  hemi.intensity = 0.62 + lp * 0.10;
+  setLampLevel(lp);
+
+  /* 舞台右上那层暖光角只是屏幕空间的一层薄雾，位置跟着灯走（顶部中央） */
+  if (el.stageGlow) el.stageGlow.style.opacity = (0.04 + lp * 0.52).toFixed(3);
   rootGlow.intensity = clamp(State.rates.resp / 5, 0, 1.2) * 0.30;
 
   /* 植株与粒子 */
