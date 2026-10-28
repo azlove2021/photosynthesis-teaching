@@ -1,9 +1,13 @@
 /* =========================================================
-   15 · 合成管线
-   HDR 场景 → 亮部提取 → 三级分离高斯 → 曝光 → ACES → 调色 → sRGB
+   15 · 合成管线（浅色教学主题）
+   线性场景 → 中性色调曲线 → 显示域调色 → 冷边收口 → sRGB
 
-   顺序是硬约束：泛光必须发生在色调映射之前。先压到 0..1 再提亮部，
-   拿到的只是灰，高光会变成一团脏雾。
+   为什么不再是 ACES + 泛光：
+   ACES 会把线性 1.0 映射到 0.8 左右，纯白底板会被压成灰，
+   整套"白+蓝"的教学底色立刻发脏；
+   而加法泛光在白底上没有"更亮"可去，只会把边缘糊成一团雾。
+   所以浅色主题走中性肩部曲线（0.86 以下严格线性，保住底板纯白），
+   泛光默认关闭，需要时用 ?bloom=0.2 单独打开。
    ========================================================= */
 'use strict';
 
@@ -11,30 +15,35 @@
    视觉参数：按感知角色分组（曝光 / 光晕 / 色调 / 氛围）
    --------------------------------------------------------- */
 const LOOK = {
-  /* 曝光 */
+  /* 曝光。浅色主题下曝光恒定，不再做暗态补偿——
+     暗态本身要靠"光柱消失 + 读数"表达，不靠把画面压黑 */
   exposure: 1.00,
-  adaptDark: 1.10,     /* 黑暗档位的曝光补偿：全黑时也要看得清植株 */
-  adaptUp: 1.9,        /* 适应变亮的速度 */
-  adaptDown: 0.55,     /* 适应变暗更慢——两个方向的速度必须不同 */
+  adaptDark: 1.00,
+  adaptUp: 1.9,
+  adaptDown: 0.55,
 
-  /* 泛光 */
-  bloomOn: true,
-  bloomThreshold: 1.02,
+  /* 泛光：白底上默认关闭 */
+  bloomOn: false,
+  bloomThreshold: 1.30,
   bloomKnee: 0.50,
-  bloomStrength: 0.34,
+  bloomStrength: 0.16,
   bloomRadius: 1.0,
-  bloomLevels: 3,      /* 3 级模糊；弱机降到 2 级 */
+  bloomLevels: 3,
+
+  /* 色调曲线：'neutral' 保白，'aces' 仅作对照 */
+  tonemap: 'neutral',
+  tmShoulder: 0.855,   /* 这条线以下严格线性，正好是底板的线性值 */
 
   /* 调色 */
   gradeOn: true,
-  contrast: 1.06,
-  saturation: 1.07,
-  lift: [0.004, 0.009, 0.007],
-  gain: [1.03, 1.00, 0.976],
+  contrast: 1.045,
+  saturation: 1.10,
+  lift: [0.0, 0.0, 0.0],
+  gain: [1.0, 1.0, 1.0],
 
-  /* 氛围 */
-  vignette: 0.36,
-  bgGlow: 0.62,
+  /* 氛围：白底不做暗角，改成向浅蓝"收边"，像纸张边缘 */
+  vignette: 0.42,
+  edge: [0.815, 0.868, 0.930],
 
   /* 诊断：0 正常 / 1 仅泛光 / 2 无后期基线 / 3 亮度阈值 */
   debug: 0
@@ -52,8 +61,10 @@ const LOOK = {
   });
   if (kv.post === '0') { LOOK.bloomOn = false; LOOK.gradeOn = false; }
   if (kv.bloom === '0') LOOK.bloomOn = false;
-  if (kv.bloom) LOOK.bloomStrength = parseFloat(kv.bloom);
+  if (kv.bloom) { LOOK.bloomOn = true; LOOK.bloomStrength = parseFloat(kv.bloom); }
   if (kv.exp) LOOK.exposure = parseFloat(kv.exp);
+  if (kv.vig) LOOK.vignette = parseFloat(kv.vig);
+  if (kv.tm === 'aces') LOOK.tonemap = 'aces';
   if (kv.debug) LOOK.debug = parseInt(kv.debug, 10) || 0;
 })();
 
@@ -170,7 +181,7 @@ const blurMat = passMat([
   uDir: { value: new THREE.Vector2(0, 0) }
 });
 
-/* ---- 合成：背景辉光 + 泛光 + 曝光 + ACES + 调色 + 暗角 + sRGB ---- */
+/* ---- 合成：泛光 + 曝光 + 色调曲线 + 调色 + 冷边 + sRGB ---- */
 const finalMat = passMat([
   'uniform sampler2D tScene;',
   'uniform sampler2D tB0;',
@@ -181,15 +192,27 @@ const finalMat = passMat([
   'uniform float uContrast;',
   'uniform float uSat;',
   'uniform float uVig;',
-  'uniform float uBg;',
   'uniform float uGrade;',
   'uniform float uDebug;',
+  'uniform float uTM;',
+  'uniform float uShoulder;',
   'uniform vec3 uLift;',
   'uniform vec3 uGain;',
+  'uniform vec3 uEdge;',
   'uniform vec3 uW;',
   'varying vec2 vUv;',
 
-  /* three.js 同款 ACES 拟合（RRT+ODT），保证与旧版观感一致 */
+  /* 中性曲线：肩部以下严格线性，所以底板的白就是白；
+     肩部以上用指数衰减滚到 1.0，高光仍有层次，不会硬切。 */
+  'vec3 toneNeutral(vec3 c) {',
+  '  c = max(c, vec3(0.0));',
+  '  float s = uShoulder;',
+  '  vec3 over = max(c - s, vec3(0.0));',
+  '  return min(c, vec3(s)) + (1.0 - s) * (1.0 - exp(-over / (1.0 - s)));',
+  '}',
+
+  /* three.js 同款 ACES 拟合（RRT+ODT）。浅色主题下仅作对照，
+     ?tm=aces 可切回，用来判断"是不是曲线把画面压灰了"。 */
   'vec3 rrtOdt(vec3 v) {',
   '  vec3 a = v * (v + 0.0245786) - 0.000090537;',
   '  vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081;',
@@ -209,6 +232,9 @@ const finalMat = passMat([
   '  c = OUT * c;',
   '  return clamp(c, 0.0, 1.0);',
   '}',
+  'vec3 tonemap(vec3 c) {',
+  '  return uTM > 0.5 ? aces(c) : toneNeutral(c);',
+  '}',
   'vec3 toSRGB(vec3 c) {',
   '  c = clamp(c, 0.0, 1.0);',
   '  vec3 hi = 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055;',
@@ -218,35 +244,32 @@ const finalMat = passMat([
   'void main() {',
   '  vec3 c = texture2D(tScene, vUv).rgb;',
 
-  /* 场景本身清成黑。补一层极弱的径向底光，植株才不会贴在纯黑板上 */
-  '  vec2 p = vUv - vec2(0.5, 0.43);',
-  '  float d = length(p * vec2(1.0, 1.32));',
-  '  c += mix(vec3(0.017, 0.038, 0.032), vec3(0.0), smoothstep(0.0, 0.80, d)) * uBg;',
-
-  '  vec3 bl = (texture2D(tB0, vUv).rgb * uW.x',
-  '           + texture2D(tB1, vUv).rgb * uW.y',
-  '           + texture2D(tB2, vUv).rgb * uW.z) / max(0.0001, uW.x + uW.y + uW.z);',
-  '  c += bl * uBloom;',
+  '  if (uBloom > 0.0) {',
+  '    vec3 bl = (texture2D(tB0, vUv).rgb * uW.x',
+  '             + texture2D(tB1, vUv).rgb * uW.y',
+  '             + texture2D(tB2, vUv).rgb * uW.z) / max(0.0001, uW.x + uW.y + uW.z);',
+  '    c += bl * uBloom;',
+  '  }',
 
   /* 诊断：只看泛光 */
   '  if (uDebug > 0.5 && uDebug < 1.5) {',
-  '    gl_FragColor = vec4(toSRGB(aces(bl * 4.0 / 0.6)), 1.0);',
+  '    gl_FragColor = vec4(toSRGB(tonemap(texture2D(tB0, vUv).rgb * 4.0)), 1.0);',
   '    return;',
   '  }',
   /* 诊断：无后期基线（无泛光、无调色），用来确认画面本身立得住 */
   '  if (uDebug > 1.5 && uDebug < 2.5) {',
-  '    gl_FragColor = vec4(toSRGB(aces(texture2D(tScene, vUv).rgb * uExposure / 0.6)), 1.0);',
+  '    gl_FragColor = vec4(toSRGB(tonemap(texture2D(tScene, vUv).rgb * uExposure)), 1.0);',
   '    return;',
   '  }',
-  /* 诊断：阈值可视化，红=会泛光，蓝=不会 */
+  /* 诊断：亮度分区，红=过曝（>1），蓝=正常 */
   '  if (uDebug > 2.5) {',
   '    float l = dot(c, vec3(0.2126, 0.7152, 0.0722));',
   '    vec3 m = l > 1.0 ? vec3(1.0, 0.22, 0.10) : vec3(0.10, 0.30, 0.85);',
-  '    gl_FragColor = vec4(m * clamp(l * 0.8, 0.10, 1.0), 1.0);',
+  '    gl_FragColor = vec4(m * clamp(l * 0.9, 0.10, 1.0), 1.0);',
   '    return;',
   '  }',
 
-  '  c = aces(c * uExposure / 0.6);',
+  '  c = tonemap(c * uExposure);',
 
   /* 调色在显示域进行，顺序固定：lift/gain → 对比 → 饱和 */
   '  c = c * uGain + uLift * (1.0 - c);',
@@ -254,9 +277,10 @@ const finalMat = passMat([
   '  float luma = dot(c, vec3(0.2126, 0.7152, 0.0722));',
   '  c = mix(vec3(luma), c, mix(1.0, uSat, uGrade));',
 
-  /* 暗角 */
-  '  float vg = 1.0 - uVig * pow(clamp(length(vUv - 0.5) * 1.34, 0.0, 1.0), 2.3);',
-  '  c *= vg;',
+  /* 冷边收口：白底不能暗角（会脏），改成向浅蓝过渡，
+     视觉上像一张纸的四边，画面反而更"整"。 */
+  '  float vg = pow(clamp(length(vUv - vec2(0.5)) * 1.32, 0.0, 1.0), 2.5);',
+  '  c = mix(c, uEdge, vg * uVig);',
 
   '  gl_FragColor = vec4(toSRGB(c), 1.0);',
   '}'
@@ -266,15 +290,17 @@ const finalMat = passMat([
   tB1: { value: null },
   tB2: { value: null },
   uExposure: { value: LOOK.exposure },
-  uBloom: { value: LOOK.bloomStrength },
+  uBloom: { value: LOOK.bloomOn ? LOOK.bloomStrength : 0 },
   uContrast: { value: LOOK.contrast },
   uSat: { value: LOOK.saturation },
   uVig: { value: LOOK.vignette },
-  uBg: { value: LOOK.bgGlow },
   uGrade: { value: LOOK.gradeOn ? 1 : 0 },
   uDebug: { value: LOOK.debug },
+  uTM: { value: LOOK.tonemap === 'aces' ? 1 : 0 },
+  uShoulder: { value: LOOK.tmShoulder },
   uLift: { value: new THREE.Vector3(LOOK.lift[0], LOOK.lift[1], LOOK.lift[2]) },
   uGain: { value: new THREE.Vector3(LOOK.gain[0], LOOK.gain[1], LOOK.gain[2]) },
+  uEdge: { value: new THREE.Vector3(LOOK.edge[0], LOOK.edge[1], LOOK.edge[2]) },
   uW: { value: new THREE.Vector3(0.50, 0.32, 0.18) }
 });
 
@@ -341,12 +367,13 @@ function blurPass(src, dst, dirX, dirY, srcW, srcH) {
 function renderScene(dt) {
   updateQuality(dt);
 
-  /* 1 · 场景 → 线性 HDR 浮点缓冲 */
+  /* 1 · 场景 → 线性缓冲 */
   renderer.setRenderTarget(POST.rtScene);
   renderer.render(scene, camera);
   renderer.setRenderTarget(null);
 
-  /* 2 · 曝光自适应：亮部来得快，暗部退得慢 */
+  /* 2 · 曝光：浅色主题恒定为 1.0（adaptDark = 1.0 时不产生偏移），
+     保留阻尼是为了让 ?exp= 调试时不会突变 */
   const lightNorm = clamp(State.I / PHYS.iMax, 0, 1);
   const target = LOOK.exposure * (1 + (LOOK.adaptDark - 1) * (1 - lightNorm));
   const rate = target > POST.exposure ? LOOK.adaptUp : LOOK.adaptDown;
@@ -386,7 +413,9 @@ function renderScene(dt) {
   finalMat.uniforms.uContrast.value = LOOK.contrast;
   finalMat.uniforms.uSat.value = LOOK.saturation;
   finalMat.uniforms.uVig.value = LOOK.vignette;
-  finalMat.uniforms.uBg.value = LOOK.bgGlow;
+  finalMat.uniforms.uEdge.value.set(LOOK.edge[0], LOOK.edge[1], LOOK.edge[2]);
+  finalMat.uniforms.uTM.value = LOOK.tonemap === 'aces' ? 1 : 0;
+  finalMat.uniforms.uShoulder.value = LOOK.tmShoulder;
   finalMat.uniforms.uGrade.value = LOOK.gradeOn ? 1 : 0;
   finalMat.uniforms.uDebug.value = LOOK.debug;
   const lv = LOOK.bloomOn ? LOOK.bloomLevels : 3;

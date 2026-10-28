@@ -17,6 +17,7 @@ const el = {
   ledgerSub: $('ledgerSub'),
   co2Val: $('co2Val'), o2Val: $('o2Val'),
   co2Trend: $('co2Trend'), o2Trend: $('o2Trend'),
+  condLight: $('condLight'), condTemp: $('condTemp'), stageGlow: $('stageGlow'),
   nrTag: $('nrTag'), nrText: $('nrText'),
   chartFoot: $('chartFoot'),
   taskPanel: $('taskPanel'), taskList: $('taskList'),
@@ -64,14 +65,18 @@ function updateReadouts(dt) {
   if (r.net >= 0) {
     el.bpFill.style.left = '50%';
     el.bpFill.style.width = w + '%';
-    el.bpFill.style.background = '#7eb6ff';
+    el.bpFill.style.background = '#1f6fd0';
   } else {
     el.bpFill.style.left = (50 - w) + '%';
     el.bpFill.style.width = w + '%';
-    el.bpFill.style.background = '#ff7a6b';
+    el.bpFill.style.background = '#d9453a';
   }
 
   el.ledgerSub.textContent = State.T + ' ℃ · ' + State.C + ' ppm · ' + State.O + '% O₂';
+
+  /* 舞台内常驻条件卡（纯净投影时唯一的光照/温度读数） */
+  if (el.condLight) el.condLight.textContent = String(Math.round(State.I));
+  if (el.condTemp) el.condTemp.textContent = String(Math.round(State.T));
 
   /* 箱内读数 */
   const cO2 = Math.round(State.chamberCO2);
@@ -311,16 +316,16 @@ function stepFrame(dt) {
   State.chamberO2 = clamp(
     State.O + (State.chamberO2 - State.O) * Math.exp(-dt / 42) + net * 0.0009 * dt, 3, 60);
 
-  /* 光照视觉 */
+  /* 光照视觉。浅底场景里"变暗"不能靠把画面压黑——底板始终是白的，
+     太阳光只负责植株的明暗与投影，所以动态范围收窄、底噪抬高，
+     黑暗中仍能看清叶片结构（这也是暗态还要观察呼吸流的前提）。 */
   const ln = clamp(State.I / PHYS.iMax, 0, 1);
-  sun.intensity = 0.25 + ln * 1.95;
-  hemi.intensity = 0.34 + ln * 0.28;
-  /* 光柱和日冕都是加色图层，在 HDR 里会连片泛光，必须克制 */
-  beamMesh.material.opacity = 0.022 + ln * 0.125;
-  sunSprite.material.opacity = 0.12 + ln * 0.52;
-  const ss = 1.02 + ln * 0.62;
-  sunSprite.scale.set(ss, ss, 1);
-  rootGlow.intensity = clamp(State.rates.resp / 5, 0, 1.2) * 0.55;
+  sun.intensity = 0.30 + ln * 1.05;
+  hemi.intensity = 0.58 + ln * 0.22;
+  /* 光照强度不再用三维光柱表达（见 40-chamber.js 说明），
+     改为舞台右上角的暖光角 + 「实验条件」卡片。 */
+  if (el.stageGlow) el.stageGlow.style.opacity = (0.06 + ln * 0.94).toFixed(3);
+  rootGlow.intensity = clamp(State.rates.resp / 5, 0, 1.2) * 0.30;
 
   /* 植株与粒子 */
   const grossNorm = clamp(State.rates.gross / 27, 0, 1.1);

@@ -270,7 +270,7 @@ const respireRecords = [];
    成本只有一个 pow()，但叶子立刻“有厚度”了。 */
 const LEAF_TRANS = {
   uTransColor: { value: new THREE.Color(0x8ad98e) },
-  uTransAmt: { value: 0.030 }
+  uTransAmt: { value: 0.018 }
 };
 
 function withLeafGlow(mat) {
@@ -298,7 +298,7 @@ function withLeafGlow(mat) {
 /* --- 花盆 --- */
 (function buildPot() {
   const potMat = new THREE.MeshPhysicalMaterial({
-    color: 0xb4e6d8, transparent: true, opacity: 0.16,
+    color: 0xcfe0f2, transparent: true, opacity: 0.14,
     roughness: 0.06, metalness: 0, side: THREE.DoubleSide,
     depthWrite: false, clearcoat: 1, clearcoatRoughness: 0.06
   });
@@ -307,26 +307,37 @@ function withLeafGlow(mat) {
   plant.add(pot);
 
   const rimMat = new THREE.MeshStandardMaterial({
-    color: 0xa9e6d6, transparent: true, opacity: 0.5,
-    roughness: 0.16, metalness: 0.2, side: THREE.DoubleSide
+    color: 0x8fa8bf, transparent: true, opacity: 0.72,
+    roughness: 0.2, metalness: 0.25, side: THREE.DoubleSide
   });
-  [0.52, 0.006].forEach(function (y) {
+  /* 只留盆口一圈。底部再加一圈会在白地上形成一圈亮环，像托盘 */
+  [0.52].forEach(function (y) {
     const ring = new THREE.Mesh(new THREE.TorusGeometry(y > 0.4 ? 0.42 : 0.33, 0.009, 8, 60), rimMat);
     ring.rotation.x = Math.PI / 2;
     ring.position.y = y;
     plant.add(ring);
   });
 
+  /* 盆底：玻璃盆体是通透的，没有底的话根系会穿出盆沿往下掉 */
+  const base = new THREE.Mesh(
+    new THREE.CircleGeometry(0.332, 48),
+    new THREE.MeshStandardMaterial({ color: 0xb9cee2, roughness: 0.5, metalness: 0.05 })
+  );
+  base.rotation.x = -Math.PI / 2;
+  base.position.y = 0.016;
+  base.receiveShadow = true;
+  plant.add(base);
+
   const soilC = document.createElement('canvas');
   soilC.width = soilC.height = 256;
   const sg = soilC.getContext('2d');
-  sg.fillStyle = '#3a2a1c';
+  sg.fillStyle = '#5d4630';
   sg.fillRect(0, 0, 256, 256);
   for (let i = 0; i < 3200; i++) {
     const x = RNG() * 256, y = RNG() * 256;
     sg.fillStyle = RNG() > 0.5
-      ? 'rgba(92,68,42,' + (0.18 + RNG() * 0.5).toFixed(2) + ')'
-      : 'rgba(22,14,9,' + (0.18 + RNG() * 0.5).toFixed(2) + ')';
+      ? 'rgba(126,98,66,' + (0.18 + RNG() * 0.5).toFixed(2) + ')'
+      : 'rgba(46,32,20,' + (0.18 + RNG() * 0.5).toFixed(2) + ')';
     sg.fillRect(x, y, 1 + RNG() * 3, 1 + RNG() * 3);
   }
   const soilTex = new THREE.CanvasTexture(soilC);
@@ -343,8 +354,8 @@ function withLeafGlow(mat) {
 /* --- 根系 --- */
 (function buildRoots() {
   const rootMat = new THREE.MeshStandardMaterial({
-    color: 0xdccba4, roughness: 0.88, metalness: 0,
-    transparent: true, opacity: 0.55
+    color: 0x6b4a28, roughness: 0.92, metalness: 0,
+    transparent: true, opacity: 0.9
   });
   const N = 11;
   for (let i = 0; i < N; i++) {
@@ -614,8 +625,8 @@ function updatePlant(dt, time, grossNorm) {
       + Math.sin(ph * 1.9 + r.phase) * WIND.flutter * r.flex;
 
     /* 光合活跃时叶肉透光略强，叶片会“亮”起来 */
-    r.mat.emissiveIntensity = 0.018 + grossNorm * 0.135;
+    r.mat.emissiveIntensity = 0.010 + grossNorm * 0.072;
   }
 
-  LEAF_TRANS.uTransAmt.value = 0.028 + grossNorm * 0.032;
+  LEAF_TRANS.uTransAmt.value = 0.016 + grossNorm * 0.020;
 }

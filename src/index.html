@@ -31,6 +31,7 @@
   <main class="main">
     <section class="stage" id="stage">
       <canvas id="gl"></canvas>
+      <div class="stage-glow" id="stageGlow"></div>
 
       <div class="hud hud-sensor" id="sensorBox">
         <div class="hud-cap">同化箱内读数</div>
@@ -48,12 +49,26 @@
         </div>
       </div>
 
+      <div class="hud hud-cond">
+        <div class="hud-cap">实验条件</div>
+        <div class="crow">
+          <span class="ck">光照</span>
+          <span class="cv2" id="condLight">800</span>
+          <span class="cu">μmol·m⁻²·s⁻¹</span>
+        </div>
+        <div class="crow">
+          <span class="ck">温度</span>
+          <span class="cv2" id="condTemp">25</span>
+          <span class="cu">℃</span>
+        </div>
+      </div>
+
       <div class="hud hud-legend">
-        <div class="lg"><i style="background:#6ee7c4"></i>O₂ 释放</div>
-        <div class="lg"><i style="background:#ffb454"></i>CO₂ 吸收</div>
-        <div class="lg"><i style="background:#5cb8ff"></i>H₂O 上行</div>
-        <div class="lg"><i style="background:#ffd980"></i>有机物 下行</div>
-        <div class="lg"><i style="background:#ff7a45"></i>呼吸 CO₂</div>
+        <div class="lg"><i style="background:#12a06a"></i>O₂ 释放</div>
+        <div class="lg"><i style="background:#d98a2b"></i>CO₂ 吸收</div>
+        <div class="lg"><i style="background:#2f7fd0"></i>H₂O 上行</div>
+        <div class="lg"><i style="background:#c79a12"></i>有机物 下行</div>
+        <div class="lg"><i style="background:#e2653f"></i>呼吸 CO₂</div>
       </div>
 
       <div class="stage-hint">拖动旋转 &nbsp;·&nbsp; 滚轮缩放 &nbsp;·&nbsp; 双击复位视角</div>

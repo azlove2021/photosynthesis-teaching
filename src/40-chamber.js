@@ -12,12 +12,12 @@ world.add(chamberGroup);
 (function buildChamber() {
   const geo = new THREE.BoxGeometry(CHAMBER.w, CHAMBER.h, CHAMBER.d);
   const glass = new THREE.MeshPhysicalMaterial({
-    color: 0xbfeee0,
+    color: 0xdcecfa,
     transparent: true,
-    opacity: 0.032,
-    roughness: 0.03,
+    opacity: 0.062,
+    roughness: 0.04,
     metalness: 0,
-    side: THREE.DoubleSide,
+    side: THREE.BackSide,
     depthWrite: false,
     clearcoat: 1,
     clearcoatRoughness: 0.04,
@@ -28,13 +28,14 @@ world.add(chamberGroup);
   box.renderOrder = 6;
   chamberGroup.add(box);
 
-  /* 菲涅尔边缘：玻璃的可读性来自掠射角的反射，不是均匀的灰底。
-     均匀 tint 加多少都像雾，掠射边缘一亮，箱体立刻成立。 */
+  /* 菲涅尔边缘。白底上不能再用加法混合——往白色里加什么都是白，
+     箱体会彻底消失。改成正常混合的蓝色描边：掠射角越强蓝得越实，
+     玻璃的"存在感"全部由这圈冷边提供。 */
   const rimGlass = new THREE.ShaderMaterial({
     uniforms: {
-      uColor: { value: new THREE.Color(0x9df0dc) },
-      uAmt: { value: 0.085 },
-      uPow: { value: 4.2 }
+      uColor: { value: new THREE.Color(0x2f6c96) },
+      uAmt: { value: 0.30 },
+      uPow: { value: 5.2 }
     },
     vertexShader: [
       'varying vec3 vN;',
@@ -54,12 +55,12 @@ world.add(chamberGroup);
       'varying vec3 vV;',
       'void main() {',
       '  float f = pow(1.0 - clamp(abs(dot(normalize(vN), normalize(vV))), 0.0, 1.0), uPow);',
-      '  gl_FragColor = vec4(uColor * f * uAmt, f * uAmt);',
+      '  gl_FragColor = vec4(uColor, f * uAmt);',
       '}'
     ].join('\n'),
     transparent: true,
     depthWrite: false,
-    blending: THREE.AdditiveBlending,
+    blending: THREE.NormalBlending,
     side: THREE.FrontSide
   });
   const shell = new THREE.Mesh(geo, rimGlass);
@@ -70,15 +71,15 @@ world.add(chamberGroup);
   /* 棱线 */
   const edges = new THREE.LineSegments(
     new THREE.EdgesGeometry(geo),
-    new THREE.LineBasicMaterial({ color: 0x8fe8d0, transparent: true, opacity: 0.30 })
+    new THREE.LineBasicMaterial({ color: 0x2b6a9c, transparent: true, opacity: 0.62 })
   );
   edges.position.y = CHAMBER.cy;
   chamberGroup.add(edges);
 
   /* 四角立柱 */
   const postMat = new THREE.MeshStandardMaterial({
-    color: 0x9ee6d4, roughness: 0.25, metalness: 0.55,
-    transparent: true, opacity: 0.55
+    color: 0xa9c2d6, roughness: 0.28, metalness: 0.42,
+    transparent: true, opacity: 0.5
   });
   const hx = CHAMBER.w / 2, hz = CHAMBER.d / 2;
   [[hx, hz], [-hx, hz], [hx, -hz], [-hx, -hz]].forEach(function (p) {
@@ -91,8 +92,8 @@ world.add(chamberGroup);
   const lid = new THREE.Mesh(
     new THREE.BoxGeometry(CHAMBER.w + 0.07, 0.035, CHAMBER.d + 0.07),
     new THREE.MeshStandardMaterial({
-      color: 0xa8e3d3, roughness: 0.18, metalness: 0.35,
-      transparent: true, opacity: 0.30
+      color: 0xc9dcee, roughness: 0.2, metalness: 0.3,
+      transparent: true, opacity: 0.42
     })
   );
   lid.position.y = CHAMBER.h + 0.017;
@@ -103,10 +104,10 @@ world.add(chamberGroup);
 const sensorPods = {};
 (function buildSensors() {
   const housingMat = new THREE.MeshStandardMaterial({
-    color: 0x233330, roughness: 0.45, metalness: 0.7
+    color: 0x46586a, roughness: 0.42, metalness: 0.6
   });
   const rodMat = new THREE.MeshStandardMaterial({
-    color: 0xb8c9c4, roughness: 0.28, metalness: 0.85
+    color: 0xc6d4e0, roughness: 0.3, metalness: 0.8
   });
 
   function pod(name, side, color) {
@@ -135,19 +136,20 @@ const sensorPods = {};
     tip.position.set(wx - side * 0.300, py, pz);
     g.add(tip);
 
-    /* 探头光晕 */
+    /* 探头光晕：白底上加法无效，改成正常混合的柔和色团，
+       读数越大色团越实、越大，本质仍是"示数的视觉编码" */
     const sc = document.createElement('canvas');
     sc.width = sc.height = 64;
     const sg = sc.getContext('2d');
     const rg = sg.createRadialGradient(32, 32, 0, 32, 32, 32);
-    rg.addColorStop(0, 'rgba(255,255,255,0.95)');
-    rg.addColorStop(0.4, 'rgba(255,255,255,0.28)');
+    rg.addColorStop(0, 'rgba(255,255,255,0.90)');
+    rg.addColorStop(0.4, 'rgba(255,255,255,0.26)');
     rg.addColorStop(1, 'rgba(255,255,255,0)');
     sg.fillStyle = rg; sg.fillRect(0, 0, 64, 64);
     const halo = new THREE.Sprite(new THREE.SpriteMaterial({
       map: new THREE.CanvasTexture(sc),
       color: color, transparent: true,
-      blending: THREE.AdditiveBlending, depthWrite: false, fog: false
+      blending: THREE.NormalBlending, depthWrite: false, fog: false
     }));
     halo.scale.set(0.30, 0.30, 1);
     halo.position.copy(tip.position);
@@ -155,81 +157,29 @@ const sensorPods = {};
 
     chamberGroup.add(g);
 
-    const lamp = new THREE.PointLight(color, 0.5, 1.4, 2);
+    const lamp = new THREE.PointLight(color, 0.35, 1.4, 2);
     lamp.position.copy(tip.position);
     chamberGroup.add(lamp);
 
     sensorPods[name] = { group: g, tip: tip, halo: halo, lamp: lamp, base: color };
   }
-  pod('co2', 1, 0xffb454);
-  pod('o2', -1, 0x6ee7c4);
+  pod('co2', 1, 0xd9822b);
+  pod('o2', -1, 0x18a06d);
 })();
 
-/* --- 光柱 --- */
-let beamMesh, sunSprite;
-(function buildBeam() {
-  const c = document.createElement('canvas');
-  c.width = 16; c.height = 256;
-  const g = c.getContext('2d');
-  const gr = g.createLinearGradient(0, 0, 0, 256);
-  gr.addColorStop(0, 'rgba(255,244,214,0.95)');
-  gr.addColorStop(0.25, 'rgba(255,240,200,0.55)');
-  gr.addColorStop(0.72, 'rgba(255,238,196,0.18)');
-  gr.addColorStop(1, 'rgba(255,238,196,0.0)');
-  g.fillStyle = gr;
-  g.fillRect(0, 0, 16, 256);
-  const tex = new THREE.CanvasTexture(c);
-  tex.wrapS = THREE.ClampToEdgeWrapping;
-  tex.wrapT = THREE.ClampToEdgeWrapping;
+/* --- 关于光柱 ---
+   暗场版本里那道锥形光柱是靠加法混合在近黑的底上"发"出来的。
+   白底上加法无从生效，改乘算又会因为锥壳的轮廓线在画面上留下一块
+   边缘生硬的暖色多边形——试过 0.25/0.45/0.75 三档，最淡的一档也还是一块脏色。
 
-  const sunPos = new THREE.Vector3(3.6, 6.8, 2.8);
-  const tgt = new THREE.Vector3(0, 1.35, 0);
-  const dir = new THREE.Vector3().subVectors(tgt, sunPos);
-  const h = dir.length();
-  dir.normalize();
+   更根本的问题是：光照强度是这个课的主变量，它的表达应当落在"读数"上，
+   而不是落在体积光这种氛围元素上。所以三维光柱整段去掉，
+   改由 ① 舞台右上角的 CSS 暖光角（纯装饰，不参与出图）
+       ② 常驻的「实验条件」卡片（光照 / 温度，纯净投影下也看得见）
+   两处共同承担。
+   叶片明暗本身由 60-ui.js 的 sun/hemi 强度直接驱动，随滑杆实时变化。 */
 
-  const cone = new THREE.ConeGeometry(2.05, h, 40, 1, true);
-  beamMesh = new THREE.Mesh(cone, new THREE.MeshBasicMaterial({
-    map: tex,
-    transparent: true,
-    opacity: 0.10,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-    side: THREE.DoubleSide,
-    fog: false
-  }));
-  const q = new THREE.Quaternion().setFromUnitVectors(
-    new THREE.Vector3(0, 1, 0), dir.clone().negate()
-  );
-  beamMesh.quaternion.copy(q);
-  beamMesh.position.copy(sunPos).add(dir.clone().multiplyScalar(h / 2));
-  beamMesh.frustumCulled = false;
-  beamMesh.renderOrder = 7;
-  world.add(beamMesh);
-
-  /* 光源光晕 */
-  const sc = document.createElement('canvas');
-  sc.width = sc.height = 128;
-  const sg = sc.getContext('2d');
-  const rg = sg.createRadialGradient(64, 64, 0, 64, 64, 64);
-  rg.addColorStop(0, 'rgba(255,255,240,1)');
-  rg.addColorStop(0.22, 'rgba(255,244,205,0.55)');
-  rg.addColorStop(1, 'rgba(255,240,190,0)');
-  sg.fillStyle = rg;
-  sg.fillRect(0, 0, 128, 128);
-  sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: new THREE.CanvasTexture(sc),
-    transparent: true,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-    fog: false
-  }));
-  sunSprite.scale.set(1.7, 1.7, 1);
-  sunSprite.position.copy(sunPos);
-  world.add(sunSprite);
-})();
-
-/* --- 浮尘（让光柱有体积感） --- */
+/* --- 浮尘（空气里有东西在动，箱体才不像一张纸） --- */
 let dust, dustAttr, dustSeed;
 (function buildDust() {
   const N = 260;
@@ -251,11 +201,11 @@ let dust, dustAttr, dustSeed;
   dust = new THREE.Points(geo, new THREE.PointsMaterial({
     size: 0.020,
     map: DOT_TEX,
-    color: 0xfff4d0,
+    color: 0x9db4c8,
     transparent: true,
     opacity: 0.0,
     depthWrite: false,
-    blending: THREE.AdditiveBlending,
+    blending: THREE.NormalBlending,
     sizeAttenuation: true,
     fog: false
   }));
@@ -272,27 +222,24 @@ function updateDust(dt, time, lightNorm) {
     if (p[i + 1] > 3.5) p[i + 1] = 0.15;
   }
   dustAttr.needsUpdate = true;
-  dust.material.opacity = 0.035 + lightNorm * 0.185;
+  dust.material.opacity = 0.018 + lightNorm * 0.105;
 }
 
 /* --- 传感器灯随读数变化 --- */
 function updateSensors(netSign, absNet, time) {
   const k = clamp(absNet / 10, 0, 1);
   const pulse = 0.82 + 0.18 * Math.sin((time || 0) * 3.2);
-  sensorPods.co2.lamp.intensity = (0.3 + k * 0.85) * pulse;
-  sensorPods.o2.lamp.intensity = (0.3 + k * 0.85) * pulse;
-  sensorPods.co2.halo.material.opacity = 0.25 + k * 0.6;
-  sensorPods.o2.halo.material.opacity = 0.25 + k * 0.6;
-  const h1 = 0.22 + k * 0.20, h2 = 0.22 + k * 0.20;
+  sensorPods.co2.lamp.intensity = (0.16 + k * 0.34) * pulse;
+  sensorPods.o2.lamp.intensity = (0.16 + k * 0.34) * pulse;
+  /* 白底上"更亮"没有空间可用，读数改用**色团的实度与尺寸**编码：
+     净光合越大，探头外的色晕越浓越大，学生一眼能看出强弱。 */
+  sensorPods.co2.halo.material.opacity = 0.18 + k * 0.52;
+  sensorPods.o2.halo.material.opacity = 0.18 + k * 0.52;
+  const h1 = 0.20 + k * 0.26, h2 = 0.20 + k * 0.26;
   sensorPods.co2.halo.scale.set(h1, h1, 1);
   sensorPods.o2.halo.scale.set(h2, h2, 1);
-  sensorPods.co2.tip.material.color.setHex(netSign > 0 ? 0xffb454 : 0x8a6a3a);
-  sensorPods.o2.tip.material.color.setHex(netSign > 0 ? 0x6ee7c4 : 0x3a6a5c);
-  /* 读数越强，探头越亮 —— 亮度是“示数”的视觉编码，不是装饰。
-     乘到线性 1.0 以上才会被泛光挑出来，读数大时探头自己会发光。 */
-  const hdr = 1.0 + k * 1.9;
-  sensorPods.co2.tip.material.color.multiplyScalar(hdr);
-  sensorPods.o2.tip.material.color.multiplyScalar(hdr);
-  sensorPods.co2.halo.material.color.setHex(netSign > 0 ? 0xffb454 : 0x8a6a3a);
-  sensorPods.o2.halo.material.color.setHex(netSign > 0 ? 0x6ee7c4 : 0x3a6a5c);
+  sensorPods.co2.tip.material.color.setHex(netSign > 0 ? 0xd9822b : 0x9a8a72);
+  sensorPods.o2.tip.material.color.setHex(netSign > 0 ? 0x18a06d : 0x6b8d84);
+  sensorPods.co2.halo.material.color.setHex(netSign > 0 ? 0xe89a3c : 0xb0a08a);
+  sensorPods.o2.halo.material.color.setHex(netSign > 0 ? 0x2fb37f : 0x8aa8a0);
 }

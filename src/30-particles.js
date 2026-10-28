@@ -11,10 +11,12 @@ function makeDotTexture() {
   c.width = c.height = S;
   const g = c.getContext('2d');
   const rg = g.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+  /* 核心做实（0—0.50 全不透明），只在最外 1/4 处收边。
+     边缘越软，白底把颜色稀释得越厉害：一圈淡彩在浅色主题里等于没画。 */
   rg.addColorStop(0, 'rgba(255,255,255,1)');
-  rg.addColorStop(0.30, 'rgba(255,255,255,0.86)');
-  rg.addColorStop(0.62, 'rgba(255,255,255,0.28)');
-  rg.addColorStop(0.86, 'rgba(255,255,255,0.06)');
+  rg.addColorStop(0.50, 'rgba(255,255,255,1)');
+  rg.addColorStop(0.74, 'rgba(255,255,255,0.52)');
+  rg.addColorStop(0.90, 'rgba(255,255,255,0.12)');
   rg.addColorStop(1, 'rgba(255,255,255,0)');
   g.fillStyle = rg;
   g.beginPath();
@@ -61,7 +63,7 @@ const PT_FRAG = [
   '  if (t.a < 0.01) discard;',
   /* uGain 把粒子推到线性 1.0 以上：泛光只认过曝的部分，
      所以物质流的“亮”是亮度，不是加色叠加出来的假白 */
-  '  gl_FragColor = vec4(vColor * uGain, t.a * vAlpha);',
+  '  gl_FragColor = vec4(vColor * uGain, clamp(t.a * vAlpha * 1.35, 0.0, 1.0));',
   '}'
 ].join('\n');
 
@@ -214,14 +216,15 @@ Stream.prototype.update = function (dt) {
 };
 
 /* ---------- 五套流 ----------
-   gain 是 HDR 强度：刚好越过泛光阈值即可。
-   推到 2.0 以上三个通道同时饱和，粒子会变成白点，
-   O₂ 绿 / CO₂ 琥珀的颜色编码就废了——这个课上是要学生分辨的。 */
-const stO2 = new Stream({ max: 700, color: 0x62f2c0, size: 0.050, life: 2.6, jitter: 0.10, speed: 0.80, gain: 1.18 });
-const stCO2 = new Stream({ max: 560, color: 0xffb04a, size: 0.047, life: 2.2, jitter: 0.05, speed: 1.00, hasTgt: true, fadePow: 1.0, gain: 1.16 });
-const stH2O = new Stream({ max: 320, color: 0x5ec4ff, size: 0.043, life: 2.1, jitter: 0.03, speed: 0.85, hasTgt: true, swirl: 0.55, gain: 1.14 });
-const stSugar = new Stream({ max: 320, color: 0xffdc8a, size: 0.043, life: 2.4, jitter: 0.05, speed: 0.72, hasTgt: true, swirl: 0.25, gain: 1.10 });
-const stResp = new Stream({ max: 780, color: 0xff8a4a, size: 0.045, life: 3.0, jitter: 0.20, speed: 0.34, fadePow: 1.3, sizeVar: 0.45, gain: 1.06 });
+   浅色主题下 gain 固定 1.0（不再往线性 1.0 以上推）：
+   白底上"更亮"没有去处，推到 >1 只会让三个通道一起夹到白，
+   O₂ 绿 / CO₂ 琥珀的颜色编码当场失效——课上就靠这个分辨物质。
+   颜色本身加深，靠色相而不是亮度承担辨识。 */
+const stO2 = new Stream({ max: 700, color: 0x12a06a, size: 0.078, life: 2.6, jitter: 0.10, speed: 0.80, gain: 1.0 });
+const stCO2 = new Stream({ max: 560, color: 0xd98a2b, size: 0.074, life: 2.2, jitter: 0.05, speed: 1.00, hasTgt: true, fadePow: 1.0, gain: 1.0 });
+const stH2O = new Stream({ max: 320, color: 0x2f7fd0, size: 0.066, life: 2.1, jitter: 0.03, speed: 0.85, hasTgt: true, swirl: 0.55, gain: 1.0 });
+const stSugar = new Stream({ max: 320, color: 0xc79a12, size: 0.066, life: 2.4, jitter: 0.05, speed: 0.72, hasTgt: true, swirl: 0.25, gain: 1.0 });
+const stResp = new Stream({ max: 780, color: 0xe2653f, size: 0.070, life: 3.0, jitter: 0.20, speed: 0.34, fadePow: 1.3, sizeVar: 0.45, gain: 1.0 });
 
 /* ---------- 发射调度 ---------- */
 const emitAcc = { o2: 0, co2: 0, h2o: 0, sugar: 0, resp: 0 };

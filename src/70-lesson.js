@@ -168,14 +168,15 @@ RECE.clear.addEventListener('click', clearRec);
    纯净投影 / 全屏
    --------------------------------------------------------- */
 let pureOn = false;
-function togglePure() {
-  pureOn = !pureOn;
+function setPure(v) {
+  pureOn = !!v;
   document.body.classList.toggle('pure', pureOn);
   const btn = document.getElementById('btnPure');
   if (btn) btn.textContent = pureOn ? '退出纯净' : '纯净';
   /* 隐藏面板后画布尺寸变了，必须重排 */
   setTimeout(function () { resize(); resizeChart(); }, 40);
 }
+function togglePure() { setPure(!pureOn); }
 
 function toggleFull() {
   try {
@@ -225,6 +226,24 @@ document.addEventListener('keydown', function (e) {
 renderRec();
 setQ(0);
 
+/* 投影场景常直接开一个"只剩植株"的地址，省得课前手忙脚乱。
+   ?pure=1 进纯净态，?q=7 直接落到第 7 问。 */
+(function readURL() {
+  let q = '';
+  try { q = String(location.search || '').replace(/^\?/, ''); } catch (e) { q = ''; }
+  if (!q) return;
+  const kv = {};
+  q.split('&').forEach(function (pair) {
+    const i = pair.indexOf('=');
+    if (i > 0) kv[pair.slice(0, i)] = pair.slice(i + 1);
+  });
+  if (kv.q) {
+    const n = parseInt(kv.q, 10);
+    if (n >= 1 && n <= QUESTIONS.length) setQ(n - 1);   /* 必须跑 setup，场景要跟着走 */
+  }
+  if (kv.pure === '1') setPure(true);
+})();
+
 /* 暴露给验证脚本 */
 window.__lesson = {
   questions: QUESTIONS,
@@ -232,5 +251,6 @@ window.__lesson = {
   index: function () { return qIndex; },
   record: recordPoint,
   recordCount: function () { return REC.pts.length; },
-  pure: function () { return pureOn; }
+  pure: function () { return pureOn; },
+  setPure: setPure
 };

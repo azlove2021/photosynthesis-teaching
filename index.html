@@ -7,30 +7,42 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 
+/* =========================================================
+   配色：白 + 蓝（教学投影）
+   三条语义色全站统一，和 3D 粒子流、曲线图、图例完全对齐：
+     总光合 = 绿 / 呼吸 = 琥珀 / 净光合 = 蓝 / 负值 = 红
+   浅底上所有"半透明白"的叠加全部换成"淡蓝灰"，
+   否则在白卡片上等于没画。
+   ========================================================= */
 :root{
-  --bg0:#0a1614;
-  --bg1:#0d1c19;
-  --panel:rgba(14,29,25,.86);
-  --panel2:rgba(17,36,31,.9);
-  --line:rgba(122,214,184,.14);
-  --line2:rgba(122,214,184,.24);
-  --tx:#e8f4ef;
-  --tx2:#93ada6;
-  --tx3:#6b847e;
-  --green:#58e2a8;
-  --green-d:#1f6e52;
-  --amber:#ffb454;
-  --amber-d:#8a5a1e;
-  --cyan:#6ee7c4;
-  --blue:#7eb6ff;
-  --red:#ff7a6b;
+  --bg0:#f7fbff;
+  --bg1:#eaf2fa;
+  --panel:#ffffff;
+  --panel2:#f6fafe;
+  --line:#dbe6f1;
+  --line2:#c0d5e8;
+  --tx:#16232f;
+  --tx2:#4d6377;
+  --tx3:#8397a8;
+  --green:#0f9b64;
+  --green-d:#0a6d47;
+  --amber:#c8820e;
+  --amber-d:#8a5a0a;
+  --cyan:#12799c;
+  --blue:#1f6fd0;
+  --blue-d:#17539b;
+  --red:#d9453a;
   --mono:ui-monospace,"Cascadia Mono",Consolas,"SF Mono",Menlo,monospace;
   --sans:"PingFang SC","Microsoft YaHei","Hiragino Sans GB","Source Han Sans SC",system-ui,sans-serif;
+  --sh1:0 1px 2px rgba(22,35,47,.05);
+  --sh2:0 6px 18px rgba(22,35,47,.08);
 }
 
 html,body{height:100%}
 body{
-  background:radial-gradient(1300px 760px at 26% -8%, #14342c 0%, #0d1f1b 42%, #071210 100%);
+  background:
+    radial-gradient(1100px 620px at 18% -10%, #ffffff 0%, rgba(255,255,255,0) 62%),
+    linear-gradient(178deg,#fbfdff 0%,#f0f6fc 46%,#e7f0f9 100%);
   color:var(--tx);
   font-family:var(--sans);
   overflow:hidden;
@@ -47,23 +59,24 @@ body{
 
 /* ---------- header ---------- */
 .hd{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 2px}
-.hd-title h1{font-size:19px;font-weight:600;letter-spacing:.4px}
+.hd-title h1{font-size:19px;font-weight:600;letter-spacing:.4px;color:#0f2032}
 .hd-title p{font-size:11.5px;color:var(--tx3);margin-top:3px;letter-spacing:.3px}
 .hd-tools{display:flex;align-items:center;gap:8px}
 
-.seg{display:flex;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:9px;padding:3px}
+.seg{display:flex;background:#eef4fa;border:1px solid var(--line);border-radius:9px;padding:3px}
 .seg button{
   border:0;background:transparent;color:var(--tx2);font-family:var(--sans);
   font-size:12.5px;padding:5px 14px;border-radius:6px;cursor:pointer;transition:.18s;
 }
-.seg button.on{background:rgba(88,226,168,.16);color:var(--green);box-shadow:0 0 0 1px rgba(88,226,168,.3) inset}
+.seg button.on{background:#fff;color:var(--blue);box-shadow:0 1px 2px rgba(22,35,47,.10),0 0 0 1px rgba(31,111,208,.22) inset;font-weight:600}
 .seg button:hover:not(.on){color:var(--tx)}
 
 .ghost-btn{
-  border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--tx2);
+  border:1px solid var(--line);background:#fff;color:var(--tx2);
   font-family:var(--sans);font-size:12.5px;padding:6px 13px;border-radius:9px;cursor:pointer;transition:.18s;
+  box-shadow:var(--sh1);
 }
-.ghost-btn:hover{color:var(--tx);border-color:var(--line2);background:rgba(255,255,255,.08)}
+.ghost-btn:hover{color:var(--blue);border-color:var(--line2);background:#f7fbff}
 
 /* ---------- main ---------- */
 .main{display:grid;grid-template-columns:minmax(0,1.52fr) minmax(360px,1fr);gap:12px;min-height:0}
@@ -71,14 +84,32 @@ body{
 .stage{
   position:relative;border-radius:16px;overflow:hidden;
   border:1px solid var(--line);
-  background:radial-gradient(1000px 620px at 50% 18%, #14352d 0%, #0b1b18 55%, #060f0d 100%);
-  box-shadow:inset 0 0 90px rgba(0,0,0,.55);
+  background:radial-gradient(900px 560px at 50% 16%, #ffffff 0%, #f2f8fd 58%, #e6f0f9 100%);
+  box-shadow:var(--sh2);
 }
 #gl{display:block;width:100%;height:100%}
 
-.hud{position:absolute;background:rgba(8,20,17,.82);border:1px solid var(--line);border-radius:11px;padding:9px 12px}
+.hud{
+  position:absolute;background:rgba(255,255,255,.93);border:1px solid var(--line);border-radius:11px;
+  padding:9px 12px;box-shadow:var(--sh2);backdrop-filter:blur(6px);
+}
 .hud-cap{font-size:10.5px;color:var(--tx3);letter-spacing:.8px;margin-bottom:6px}
 .hud-sensor{top:12px;left:12px;min-width:172px}
+/* 右上角的实验条件卡：纯净投影时会话面板全部隐藏，
+   学生仍要看得见"现在是什么光强、多少度" */
+.hud-cond{top:12px;right:12px;min-width:150px}
+/* 右上角暖光：光照方向的可读提示，画在画布之上、UI 之下。
+   透明度由 JS 跟随光强变化——拉到 0 时这一角完全冷掉。 */
+.stage-glow{
+  position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:radial-gradient(circle at 94% 2%, rgba(255,201,128,.52), rgba(255,201,128,0) 34%);
+  transition:opacity .4s linear;
+}
+.hud{z-index:3}
+.crow{display:flex;align-items:baseline;gap:5px;margin-top:3px}
+.ck{font-size:11px;color:var(--tx2);width:26px}
+.cv2{font-family:var(--mono);font-size:16px;font-weight:600;color:#1b3a56;font-variant-numeric:tabular-nums}
+.cu{font-size:9.5px;color:var(--tx3)}
 .srow{display:flex;align-items:baseline;gap:5px;margin-top:3px}
 .sname{font-size:11px;color:var(--tx2);width:26px}
 .sval{font-family:var(--mono);font-size:17px;font-weight:600;color:var(--cyan);font-variant-numeric:tabular-nums}
@@ -87,18 +118,20 @@ body{
 .strend.up{color:var(--amber)}
 .strend.down{color:var(--green)}
 
-.hud-legend{bottom:12px;left:12px;display:flex;gap:12px;padding:7px 12px;border-radius:9px}
-.lg{display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--tx2)}
+.hud-legend{bottom:12px;left:12px;display:flex;gap:12px;padding:7px 12px;border-radius:9px}.lg{display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--tx2)}
 .lg i{width:7px;height:7px;border-radius:50%;display:block}
 
 .stage-hint{
   position:absolute;bottom:14px;right:14px;font-size:10.5px;color:var(--tx3);
-  background:rgba(8,20,17,.7);padding:5px 10px;border-radius:8px;border:1px solid var(--line);
+  background:rgba(255,255,255,.85);padding:5px 10px;border-radius:8px;border:1px solid var(--line);
 }
 
 /* ---------- side ---------- */
 .side{display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:10px;min-height:0}
-.panel{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:12px 14px;min-height:0}
+.panel{
+  border:1px solid var(--line);border-radius:14px;background:var(--panel);
+  padding:12px 14px;min-height:0;box-shadow:var(--sh1);
+}
 .p-cap{font-size:11.5px;color:var(--tx2);letter-spacing:.5px;display:flex;align-items:baseline;justify-content:space-between;gap:8px}
 .p-sub{font-size:10.5px;color:var(--tx3);letter-spacing:0}
 
@@ -115,8 +148,8 @@ body{
 .unit-line{font-size:10px;color:var(--tx3);margin-top:6px;text-align:center;letter-spacing:.2px}
 
 .bipolar{margin-top:10px}
-.bp-track{position:relative;height:9px;border-radius:5px;background:rgba(255,255,255,.06);overflow:hidden}
-.bp-zero{position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,.3);z-index:2}
+.bp-track{position:relative;height:9px;border-radius:5px;background:#e9f0f7;overflow:hidden;box-shadow:inset 0 1px 2px rgba(22,35,47,.06)}
+.bp-zero{position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(22,35,47,.28);z-index:2}
 .bp-fill{position:absolute;top:0;bottom:0;left:50%;width:0;background:var(--blue);border-radius:4px;transition:background .2s}
 .bp-lab{display:flex;justify-content:space-between;font-size:9.5px;color:var(--tx3);margin-top:3px}
 
@@ -130,19 +163,20 @@ body{
 .tasklist{margin-top:8px;display:flex;flex-direction:column;gap:6px}
 .task{
   display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border-radius:9px;
-  background:rgba(255,255,255,.035);border:1px solid transparent;cursor:pointer;transition:.18s;
+  background:var(--panel2);border:1px solid transparent;cursor:pointer;transition:.18s;
 }
-.task:hover{background:rgba(255,255,255,.07);border-color:var(--line2)}
-.task .tn{font-family:var(--mono);font-size:11px;color:var(--green);padding-top:1px}
+.task:hover{background:#eef6fd;border-color:var(--line2)}
+.task .tn{font-family:var(--mono);font-size:11px;color:var(--blue);padding-top:1px}
 .task .tt{font-size:11.5px;color:var(--tx);line-height:1.45}
 .task .td{font-size:10.5px;color:var(--tx3);line-height:1.5;margin-top:2px}
-.task.done{opacity:.5}
+.task.done{opacity:.55}
 .task.done .tn{color:var(--tx3)}
 
 /* ---------- controls ---------- */
 .controls{
   display:flex;gap:10px;align-items:stretch;
   border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:10px 14px;
+  box-shadow:var(--sh1);
 }
 .ctl{display:flex;flex-direction:column;justify-content:center;gap:5px;min-width:0}
 .ctl-light{flex:2.2}
@@ -152,7 +186,7 @@ body{
 .ctl-preset{flex:1.7}
 .ctl-top{display:flex;align-items:baseline;justify-content:space-between;gap:6px}
 .ctl-top label{font-size:11px;color:var(--tx2);letter-spacing:.4px}
-.kbd{font-size:9.5px;color:var(--tx3);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+.kbd{font-size:9.5px;color:var(--tx3);border:1px solid var(--line);border-radius:4px;padding:1px 5px;background:#f7fbff}
 .ctl-body{display:flex;align-items:center;gap:9px}
 .ctl-body output{
   font-family:var(--mono);font-size:13px;color:var(--tx);min-width:96px;text-align:right;
@@ -165,24 +199,24 @@ input[type=range]{
 }
 input[type=range]::-webkit-slider-runnable-track{
   height:5px;border-radius:3px;
-  background:linear-gradient(90deg,var(--green) 0%,var(--green) var(--p,40%),rgba(255,255,255,.1) var(--p,40%),rgba(255,255,255,.1) 100%);
+  background:linear-gradient(90deg,#2f86e0 0%,#2f86e0 var(--p,40%),#dfe8f2 var(--p,40%),#dfe8f2 100%);
 }
 input[type=range]::-webkit-slider-thumb{
-  -webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:#eafff7;margin-top:-4px;
-  box-shadow:0 0 0 3px rgba(88,226,168,.22),0 0 10px rgba(88,226,168,.5);transition:transform .12s;
+  -webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:#ffffff;margin-top:-4px;
+  box-shadow:0 0 0 1.5px #2f86e0,0 1px 4px rgba(31,111,208,.35);transition:transform .12s;
 }
 input[type=range]:active::-webkit-slider-thumb{transform:scale(1.18)}
-#sldTemp::-webkit-slider-runnable-track{background:linear-gradient(90deg,#6ec3ff 0%,#ffd27a 50%,#ff8a5c 100%)}
-#sldCO2::-webkit-slider-runnable-track{background:linear-gradient(90deg,#8a6d3b 0%,var(--amber) 100%)}
-#sldO2::-webkit-slider-runnable-track{background:linear-gradient(90deg,#4a7d9e 0%,#8fd7ff 100%)}
+#sldTemp::-webkit-slider-runnable-track{background:linear-gradient(90deg,#4aa8e0 0%,#eebc46 50%,#e2653f 100%)}
+#sldCO2::-webkit-slider-runnable-track{background:linear-gradient(90deg,#d9c3a0 0%,#c8820e 100%)}
+#sldO2::-webkit-slider-runnable-track{background:linear-gradient(90deg,#a9c8dd 0%,#3b93e0 100%)}
 
 .pills{display:flex;gap:5px}
 .pills button,.toggle button{
-  border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--tx2);
+  border:1px solid var(--line);background:#fff;color:var(--tx2);
   font-family:var(--sans);font-size:11px;padding:4px 9px;border-radius:7px;cursor:pointer;transition:.16s;white-space:nowrap;
 }
-.pills button:hover,.toggle button:hover{color:var(--tx);border-color:var(--line2)}
-.pills button.on,.toggle button.on{background:rgba(88,226,168,.16);color:var(--green);border-color:rgba(88,226,168,.4)}
+.pills button:hover,.toggle button:hover{color:var(--blue);border-color:var(--line2)}
+.pills button.on,.toggle button.on{background:rgba(31,111,208,.10);color:var(--blue-d);border-color:rgba(31,111,208,.42);font-weight:600}
 .presets{flex-wrap:wrap}
 .toggle{display:flex;gap:4px}
 
@@ -190,45 +224,46 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.18)}
 .lessonbar{
   display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center;
   border:1px solid var(--line);border-radius:14px;
-  background:linear-gradient(90deg,rgba(88,226,168,.10),rgba(14,29,25,.9) 34%,rgba(14,29,25,.9));
-  padding:10px 16px;
+  background:linear-gradient(90deg,rgba(31,111,208,.075),#ffffff 34%,#ffffff);
+  padding:10px 16px;box-shadow:var(--sh1);
 }
 .lb-nav{display:flex;align-items:center;gap:7px}
 .lb-btn{
   width:30px;height:32px;border-radius:8px;border:1px solid var(--line);
-  background:rgba(255,255,255,.045);color:var(--tx2);font-size:17px;line-height:1;
+  background:#fff;color:var(--tx2);font-size:17px;line-height:1;
   cursor:pointer;transition:.16s;font-family:var(--sans);
 }
-.lb-btn:hover{color:var(--tx);border-color:var(--line2);background:rgba(255,255,255,.09)}
-.lb-btn:disabled{opacity:.3;cursor:default}
+.lb-btn:hover{color:var(--blue);border-color:rgba(31,111,208,.4);background:#f4faff}
+.lb-btn:disabled{opacity:.32;cursor:default}
 .lb-stage{
-  font-size:10.5px;color:var(--green);letter-spacing:.7px;white-space:nowrap;
-  border:1px solid rgba(88,226,168,.28);border-radius:7px;padding:4px 9px;
-  background:rgba(88,226,168,.07);
+  font-size:10.5px;color:var(--blue-d);letter-spacing:.7px;white-space:nowrap;
+  border:1px solid rgba(31,111,208,.26);border-radius:7px;padding:4px 9px;
+  background:rgba(31,111,208,.06);
 }
 .lb-mid{min-width:0}
 .lb-q{display:flex;align-items:baseline;gap:9px}
 .lb-qno{
-  font-family:var(--mono);font-size:12px;font-weight:600;color:var(--green);
-  border:1px solid rgba(88,226,168,.4);border-radius:6px;padding:1px 7px;white-space:nowrap;
+  font-family:var(--mono);font-size:12px;font-weight:600;color:var(--blue);
+  border:1px solid rgba(31,111,208,.38);border-radius:6px;padding:1px 7px;white-space:nowrap;
+  background:rgba(31,111,208,.05);
 }
 .lb-qtext{
-  font-size:clamp(14px,1.08vw,17px);font-weight:600;color:var(--tx);line-height:1.35;letter-spacing:.2px;
+  font-size:clamp(14px,1.08vw,17px);font-weight:600;color:#12202c;line-height:1.35;letter-spacing:.2px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 .lb-state{display:flex;align-items:baseline;gap:8px;margin-top:6px;min-width:0}
 .lb-state-tx{
-  font-size:12px;color:var(--tx2);line-height:1.5;
+  font-size:12.5px;color:var(--tx2);line-height:1.5;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 .lb-chips{display:flex;flex-direction:column;gap:4px}
 .chip{
-  font-size:11px;color:var(--tx2);border:1px dashed rgba(147,173,166,.34);border-radius:20px;
-  padding:2.5px 11px;white-space:nowrap;transition:.3s;letter-spacing:.2px;
+  font-size:11px;color:var(--tx2);border:1px dashed #c0d5e8;border-radius:20px;
+  padding:2.5px 11px;white-space:nowrap;transition:.3s;letter-spacing:.2px;background:#fff;
 }
 .chip.on{
-  color:var(--green);border-style:solid;border-color:rgba(88,226,168,.5);
-  background:rgba(88,226,168,.12);
+  color:var(--blue-d);border-style:solid;border-color:rgba(31,111,208,.45);
+  background:rgba(31,111,208,.10);font-weight:600;
 }
 
 /* ---------- 实验记录 ---------- */
@@ -237,22 +272,22 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.18)}
 .rec-title{font-size:10.5px;color:var(--tx2);letter-spacing:.5px}
 .rec-count{font-family:var(--mono);font-size:10px;color:var(--tx3);margin-right:auto}
 .rec-btn{
-  border:1px solid rgba(88,226,168,.34);background:rgba(88,226,168,.1);color:var(--green);
+  border:1px solid rgba(31,111,208,.35);background:rgba(31,111,208,.08);color:var(--blue-d);
   font-family:var(--sans);font-size:10.5px;padding:3px 9px;border-radius:6px;cursor:pointer;transition:.16s;
 }
-.rec-btn:hover{background:rgba(88,226,168,.2)}
-.rec-btn.ghost{border-color:var(--line);background:transparent;color:var(--tx3)}
-.rec-btn.ghost:hover{color:var(--tx2);background:rgba(255,255,255,.06)}
+.rec-btn:hover{background:rgba(31,111,208,.16)}
+.rec-btn.ghost{border-color:var(--line);background:#fff;color:var(--tx3)}
+.rec-btn.ghost:hover{color:var(--tx2);background:#f4f9fe}
 .rec-body{max-height:76px;overflow:auto;margin-top:5px}
 .recstrip.empty .rec-body,.recstrip.empty .rec-btn.ghost{display:none}
 .rec-empty{font-size:10px;color:var(--tx3);line-height:1.55}
 .rec-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10px}
 .rec-table th{
   font-weight:500;color:var(--tx3);text-align:right;padding:2px 4px;
-  border-bottom:1px solid var(--line);position:sticky;top:0;background:#0f211d;
+  border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;
 }
 .rec-table th:first-child,.rec-table td:first-child{text-align:left}
-.rec-table td{color:var(--tx2);text-align:right;padding:2px 4px;border-bottom:1px dashed rgba(255,255,255,.05)}
+.rec-table td{color:var(--tx2);text-align:right;padding:2px 4px;border-bottom:1px dashed #eaf0f6}
 .rec-table td.ng{color:var(--red)}
 .rec-table td.po{color:var(--blue)}
 
@@ -260,37 +295,40 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.18)}
 .pure .hd-tools,.pure .side,.pure .controls,.pure .lessonbar,.pure .hud-legend,.pure .stage-hint{display:none}
 .pure .app{padding:0}
 .pure .main{grid-template-columns:1fr}
-.pure .stage{border-radius:0;border:0}
+.pure .stage{border-radius:0;border:0;box-shadow:none}
 
 /* ---------- narration（保留旧类，供兼容） ---------- */
 .narration{
   display:flex;align-items:center;gap:12px;
   border:1px solid var(--line);border-radius:14px;
-  background:linear-gradient(90deg,rgba(88,226,168,.10),rgba(14,29,25,.88) 42%,rgba(14,29,25,.88));
+  background:linear-gradient(90deg,rgba(31,111,208,.07),#ffffff 42%,#ffffff);
   padding:11px 16px;min-height:52px;
 }
 .nr-tag{
-  font-size:10.5px;color:#04140f;background:var(--green);border-radius:6px;padding:2px 8px;
+  font-size:10.5px;color:#fff;background:var(--green);border-radius:6px;padding:2px 8px;
   font-weight:600;letter-spacing:.5px;white-space:nowrap;flex:0 0 auto;
 }
-.nr-tag.neutral{background:var(--blue);color:#06182c}
-.nr-tag.warn{background:var(--amber);color:#241503}
-.nr-tag.neg{background:var(--red);color:#2a0a06}
+.nr-tag.neutral{background:var(--blue)}
+.nr-tag.warn{background:var(--amber)}
+.nr-tag.neg{background:var(--red)}
 .nr-text{font-size:13px;color:var(--tx);line-height:1.55;letter-spacing:.2px}
 
 /* ---------- help ---------- */
-.help-mask{position:fixed;inset:0;background:rgba(4,10,9,.72);display:flex;align-items:center;justify-content:center;z-index:99}
+.help-mask{position:fixed;inset:0;background:rgba(16,32,48,.38);display:flex;align-items:center;justify-content:center;z-index:99;backdrop-filter:blur(2px)}
 .help-mask[hidden]{display:none}
 [hidden]{display:none !important}
-.help-box{width:min(560px,88vw);background:#0f211d;border:1px solid var(--line2);border-radius:16px;padding:22px 24px}
-.help-box h3{font-size:15px;font-weight:600;margin-bottom:12px}
+.help-box{
+  width:min(560px,88vw);background:#fff;border:1px solid var(--line2);border-radius:16px;
+  padding:22px 24px;box-shadow:0 24px 60px rgba(16,32,48,.22);
+}
+.help-box h3{font-size:15px;font-weight:600;margin-bottom:12px;color:#0f2032}
 .help-box ul{list-style:none;display:flex;flex-direction:column;gap:9px}
 .help-box li{font-size:12px;color:var(--tx2);line-height:1.6;padding-left:14px;position:relative}
-.help-box li::before{content:"";position:absolute;left:0;top:8px;width:5px;height:5px;border-radius:50%;background:var(--green)}
+.help-box li::before{content:"";position:absolute;left:0;top:8px;width:5px;height:5px;border-radius:50%;background:var(--blue)}
 .help-box b{color:var(--tx);font-weight:600}
 .help-box button{
   margin-top:18px;width:100%;padding:9px;border-radius:9px;border:0;cursor:pointer;
-  background:var(--green);color:#04140f;font-family:var(--sans);font-size:13px;font-weight:600;
+  background:var(--blue);color:#fff;font-family:var(--sans);font-size:13px;font-weight:600;
 }
 
 @media (max-width:1180px){
@@ -327,6 +365,7 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.18)}
   <main class="main">
     <section class="stage" id="stage">
       <canvas id="gl"></canvas>
+      <div class="stage-glow" id="stageGlow"></div>
 
       <div class="hud hud-sensor" id="sensorBox">
         <div class="hud-cap">同化箱内读数</div>
@@ -344,12 +383,26 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.18)}
         </div>
       </div>
 
+      <div class="hud hud-cond">
+        <div class="hud-cap">实验条件</div>
+        <div class="crow">
+          <span class="ck">光照</span>
+          <span class="cv2" id="condLight">800</span>
+          <span class="cu">μmol·m⁻²·s⁻¹</span>
+        </div>
+        <div class="crow">
+          <span class="ck">温度</span>
+          <span class="cv2" id="condTemp">25</span>
+          <span class="cu">℃</span>
+        </div>
+      </div>
+
       <div class="hud hud-legend">
-        <div class="lg"><i style="background:#6ee7c4"></i>O₂ 释放</div>
-        <div class="lg"><i style="background:#ffb454"></i>CO₂ 吸收</div>
-        <div class="lg"><i style="background:#5cb8ff"></i>H₂O 上行</div>
-        <div class="lg"><i style="background:#ffd980"></i>有机物 下行</div>
-        <div class="lg"><i style="background:#ff7a45"></i>呼吸 CO₂</div>
+        <div class="lg"><i style="background:#12a06a"></i>O₂ 释放</div>
+        <div class="lg"><i style="background:#d98a2b"></i>CO₂ 吸收</div>
+        <div class="lg"><i style="background:#2f7fd0"></i>H₂O 上行</div>
+        <div class="lg"><i style="background:#c79a12"></i>有机物 下行</div>
+        <div class="lg"><i style="background:#e2653f"></i>呼吸 CO₂</div>
       </div>
 
       <div class="stage-hint">拖动旋转 &nbsp;·&nbsp; 滚轮缩放 &nbsp;·&nbsp; 双击复位视角</div>
@@ -683,15 +736,19 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0x030807, 10.5, 22);
+/* 浅色教学底板：取值是**线性**的（材质与清屏色都不做 sRGB 转换，见上），
+   经 15-post.js 的中性曲线后落回约 #eef4fb —— 与 CSS 舞台底色对齐，
+   画布边界才不会露出来。 */
+scene.background = new THREE.Color(0.855, 0.905, 0.958);
+scene.fog = new THREE.Fog(scene.background.clone(), 13.5, 30);
 
 const camera = new THREE.PerspectiveCamera(33, 1, 0.1, 100);
 
 /* ---- 自建轨道控制（不引入 OrbitControls，保持单文件） ---- */
 const Orbit = {
-  az: 0.34, pol: 1.255, dist: 5.45,
-  taz: 0.34, tpol: 1.255, tdist: 5.45,
-  target: new THREE.Vector3(0, 1.50, 0),
+  az: 0.34, pol: 1.255, dist: 6.90,
+  taz: 0.34, tpol: 1.255, tdist: 6.90,
+  target: new THREE.Vector3(0, 1.45, 0),
   autoIdle: 0,
   dragging: false,
   lastX: 0, lastY: 0
@@ -708,7 +765,7 @@ function applyCamera() {
 }
 
 function resetCamera() {
-  Orbit.taz = 0.34; Orbit.tpol = 1.255; Orbit.tdist = 5.45;
+  Orbit.taz = 0.34; Orbit.tpol = 1.255; Orbit.tdist = 6.90;
 }
 
 glCanvas.addEventListener('pointerdown', e => {
@@ -733,11 +790,14 @@ glCanvas.addEventListener('wheel', e => {
 }, { passive: false });
 glCanvas.addEventListener('dblclick', resetCamera);
 
-/* ---- 灯光 ---- */
-const hemi = new THREE.HemisphereLight(0xa9e6cd, 0x0d1a16, 0.5);
+/* ---- 灯光 ----
+   浅底场景的照明逻辑与暗场相反：环境光必须托住"地板"，否则
+   光强拉到 0 时植株会变成白底上的一块黑影，学生看不清结构。
+   所以 hemi 的底噪拉高，太阳光的动态范围收窄。 */
+const hemi = new THREE.HemisphereLight(0xffffff, 0xcbdbea, 0.95);
 scene.add(hemi);
 
-const sun = new THREE.DirectionalLight(0xfff1d8, 2.2);
+const sun = new THREE.DirectionalLight(0xfff7ec, 2.0);
 sun.position.set(3.6, 6.8, 2.8);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
@@ -753,15 +813,16 @@ scene.add(sun);
 scene.add(sun.target);
 sun.target.position.set(0, 1.5, 0);
 
-const rim = new THREE.DirectionalLight(0x6fb2ff, 0.88);
+/* 蓝色补边：白底上靠冷边把植株轮廓从背景里"切"出来 */
+const rim = new THREE.DirectionalLight(0x9dc8f5, 0.72);
 rim.position.set(-4.6, 2.6, -3.8);
 scene.add(rim);
 
-const fillPoint = new THREE.PointLight(0x2f7a66, 0.55, 14, 2);
+const fillPoint = new THREE.PointLight(0xcfe2f4, 0.40, 14, 2);
 fillPoint.position.set(0, 1.1, -3.0);
 scene.add(fillPoint);
 
-const rootGlow = new THREE.PointLight(0xff8a3d, 0.0, 3.4, 2);
+const rootGlow = new THREE.PointLight(0xffa860, 0.0, 3.4, 2);
 rootGlow.position.set(0, 0.42, 0);
 scene.add(rootGlow);
 
@@ -774,25 +835,53 @@ scene.add(world);
   const c = document.createElement('canvas');
   c.width = c.height = 512;
   const g = c.getContext('2d');
-  const rg = g.createRadialGradient(256, 256, 20, 256, 256, 256);
-  /* 地面是一片摄影棚式的暗色衰减：中心留一点可读的绿，
-     边缘迅速压到黑，这样 ACES 的暗部抬升不会把整块地抬成亮青色 */
-  rg.addColorStop(0, '#16281f');
-  rg.addColorStop(0.28, '#0b1713');
-  rg.addColorStop(0.55, '#050c0a');
-  rg.addColorStop(1, '#000000');
+  const rg = g.createRadialGradient(256, 256, 20, 256, 256, 250);
+  /* 摄影棚式无边地面：中心纯白，向外渐变成和背景同一个浅蓝。
+     最外圈必须落在背景色上，否则圆盘边缘会留一道弧线。 */
+  rg.addColorStop(0, '#ffffff');
+  rg.addColorStop(0.34, '#f7fbfe');
+  rg.addColorStop(0.66, '#edf3fa');
+  rg.addColorStop(1, '#e7eff8');
   g.fillStyle = rg;
   g.fillRect(0, 0, 512, 512);
   const tex = new THREE.CanvasTexture(c);
   tex.encoding = THREE.sRGBEncoding;
   const disc = new THREE.Mesh(
     new THREE.CircleGeometry(9, 64),
-    new THREE.MeshStandardMaterial({ map: tex, roughness: 0.98, metalness: 0 })
+    new THREE.MeshStandardMaterial({ map: tex, roughness: 0.97, metalness: 0 })
   );
   disc.rotation.x = -Math.PI / 2;
   disc.position.y = -0.02;
   disc.receiveShadow = true;
   scene.add(disc);
+})();
+
+/* ---- 接地阴影 ----
+   浅底场景的关键一步。白底上的花盆如果只有真实投影，会被地面的
+   高光淹没，整株看着是"浮"在纸上的。这里垫一片柔和的接地暗影，
+   半径略大于盆口、偏向背光侧，植物才真正站在地上。 */
+(function buildContactShadow() {
+  const S = 256;
+  const c = document.createElement('canvas');
+  c.width = c.height = S;
+  const g = c.getContext('2d');
+  const rg = g.createRadialGradient(S / 2, S / 2, S * 0.06, S / 2, S / 2, S / 2);
+  rg.addColorStop(0, 'rgba(26,40,54,0.62)');
+  rg.addColorStop(0.34, 'rgba(26,40,54,0.38)');
+  rg.addColorStop(0.66, 'rgba(26,40,54,0.13)');
+  rg.addColorStop(1, 'rgba(26,40,54,0)');
+  g.fillStyle = rg;
+  g.fillRect(0, 0, S, S);
+  const tex = new THREE.CanvasTexture(c);
+  tex.encoding = THREE.sRGBEncoding;
+  const blob = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.05, 1.72),
+    new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false })
+  );
+  blob.rotation.x = -Math.PI / 2;
+  blob.position.set(-0.13, 0.004, -0.10);
+  blob.renderOrder = 1;
+  scene.add(blob);
 })();
 
 /* ---- 尺寸自适应 ---- */
@@ -812,11 +901,15 @@ window.addEventListener('resize', resize);
 
 /* ---- 15-post.js ---- */
 /* =========================================================
-   15 · 合成管线
-   HDR 场景 → 亮部提取 → 三级分离高斯 → 曝光 → ACES → 调色 → sRGB
+   15 · 合成管线（浅色教学主题）
+   线性场景 → 中性色调曲线 → 显示域调色 → 冷边收口 → sRGB
 
-   顺序是硬约束：泛光必须发生在色调映射之前。先压到 0..1 再提亮部，
-   拿到的只是灰，高光会变成一团脏雾。
+   为什么不再是 ACES + 泛光：
+   ACES 会把线性 1.0 映射到 0.8 左右，纯白底板会被压成灰，
+   整套"白+蓝"的教学底色立刻发脏；
+   而加法泛光在白底上没有"更亮"可去，只会把边缘糊成一团雾。
+   所以浅色主题走中性肩部曲线（0.86 以下严格线性，保住底板纯白），
+   泛光默认关闭，需要时用 ?bloom=0.2 单独打开。
    ========================================================= */
 'use strict';
 
@@ -824,30 +917,35 @@ window.addEventListener('resize', resize);
    视觉参数：按感知角色分组（曝光 / 光晕 / 色调 / 氛围）
    --------------------------------------------------------- */
 const LOOK = {
-  /* 曝光 */
+  /* 曝光。浅色主题下曝光恒定，不再做暗态补偿——
+     暗态本身要靠"光柱消失 + 读数"表达，不靠把画面压黑 */
   exposure: 1.00,
-  adaptDark: 1.10,     /* 黑暗档位的曝光补偿：全黑时也要看得清植株 */
-  adaptUp: 1.9,        /* 适应变亮的速度 */
-  adaptDown: 0.55,     /* 适应变暗更慢——两个方向的速度必须不同 */
+  adaptDark: 1.00,
+  adaptUp: 1.9,
+  adaptDown: 0.55,
 
-  /* 泛光 */
-  bloomOn: true,
-  bloomThreshold: 1.02,
+  /* 泛光：白底上默认关闭 */
+  bloomOn: false,
+  bloomThreshold: 1.30,
   bloomKnee: 0.50,
-  bloomStrength: 0.34,
+  bloomStrength: 0.16,
   bloomRadius: 1.0,
-  bloomLevels: 3,      /* 3 级模糊；弱机降到 2 级 */
+  bloomLevels: 3,
+
+  /* 色调曲线：'neutral' 保白，'aces' 仅作对照 */
+  tonemap: 'neutral',
+  tmShoulder: 0.855,   /* 这条线以下严格线性，正好是底板的线性值 */
 
   /* 调色 */
   gradeOn: true,
-  contrast: 1.06,
-  saturation: 1.07,
-  lift: [0.004, 0.009, 0.007],
-  gain: [1.03, 1.00, 0.976],
+  contrast: 1.045,
+  saturation: 1.10,
+  lift: [0.0, 0.0, 0.0],
+  gain: [1.0, 1.0, 1.0],
 
-  /* 氛围 */
-  vignette: 0.36,
-  bgGlow: 0.62,
+  /* 氛围：白底不做暗角，改成向浅蓝"收边"，像纸张边缘 */
+  vignette: 0.42,
+  edge: [0.815, 0.868, 0.930],
 
   /* 诊断：0 正常 / 1 仅泛光 / 2 无后期基线 / 3 亮度阈值 */
   debug: 0
@@ -865,8 +963,10 @@ const LOOK = {
   });
   if (kv.post === '0') { LOOK.bloomOn = false; LOOK.gradeOn = false; }
   if (kv.bloom === '0') LOOK.bloomOn = false;
-  if (kv.bloom) LOOK.bloomStrength = parseFloat(kv.bloom);
+  if (kv.bloom) { LOOK.bloomOn = true; LOOK.bloomStrength = parseFloat(kv.bloom); }
   if (kv.exp) LOOK.exposure = parseFloat(kv.exp);
+  if (kv.vig) LOOK.vignette = parseFloat(kv.vig);
+  if (kv.tm === 'aces') LOOK.tonemap = 'aces';
   if (kv.debug) LOOK.debug = parseInt(kv.debug, 10) || 0;
 })();
 
@@ -983,7 +1083,7 @@ const blurMat = passMat([
   uDir: { value: new THREE.Vector2(0, 0) }
 });
 
-/* ---- 合成：背景辉光 + 泛光 + 曝光 + ACES + 调色 + 暗角 + sRGB ---- */
+/* ---- 合成：泛光 + 曝光 + 色调曲线 + 调色 + 冷边 + sRGB ---- */
 const finalMat = passMat([
   'uniform sampler2D tScene;',
   'uniform sampler2D tB0;',
@@ -994,15 +1094,27 @@ const finalMat = passMat([
   'uniform float uContrast;',
   'uniform float uSat;',
   'uniform float uVig;',
-  'uniform float uBg;',
   'uniform float uGrade;',
   'uniform float uDebug;',
+  'uniform float uTM;',
+  'uniform float uShoulder;',
   'uniform vec3 uLift;',
   'uniform vec3 uGain;',
+  'uniform vec3 uEdge;',
   'uniform vec3 uW;',
   'varying vec2 vUv;',
 
-  /* three.js 同款 ACES 拟合（RRT+ODT），保证与旧版观感一致 */
+  /* 中性曲线：肩部以下严格线性，所以底板的白就是白；
+     肩部以上用指数衰减滚到 1.0，高光仍有层次，不会硬切。 */
+  'vec3 toneNeutral(vec3 c) {',
+  '  c = max(c, vec3(0.0));',
+  '  float s = uShoulder;',
+  '  vec3 over = max(c - s, vec3(0.0));',
+  '  return min(c, vec3(s)) + (1.0 - s) * (1.0 - exp(-over / (1.0 - s)));',
+  '}',
+
+  /* three.js 同款 ACES 拟合（RRT+ODT）。浅色主题下仅作对照，
+     ?tm=aces 可切回，用来判断"是不是曲线把画面压灰了"。 */
   'vec3 rrtOdt(vec3 v) {',
   '  vec3 a = v * (v + 0.0245786) - 0.000090537;',
   '  vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081;',
@@ -1022,6 +1134,9 @@ const finalMat = passMat([
   '  c = OUT * c;',
   '  return clamp(c, 0.0, 1.0);',
   '}',
+  'vec3 tonemap(vec3 c) {',
+  '  return uTM > 0.5 ? aces(c) : toneNeutral(c);',
+  '}',
   'vec3 toSRGB(vec3 c) {',
   '  c = clamp(c, 0.0, 1.0);',
   '  vec3 hi = 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055;',
@@ -1031,35 +1146,32 @@ const finalMat = passMat([
   'void main() {',
   '  vec3 c = texture2D(tScene, vUv).rgb;',
 
-  /* 场景本身清成黑。补一层极弱的径向底光，植株才不会贴在纯黑板上 */
-  '  vec2 p = vUv - vec2(0.5, 0.43);',
-  '  float d = length(p * vec2(1.0, 1.32));',
-  '  c += mix(vec3(0.017, 0.038, 0.032), vec3(0.0), smoothstep(0.0, 0.80, d)) * uBg;',
-
-  '  vec3 bl = (texture2D(tB0, vUv).rgb * uW.x',
-  '           + texture2D(tB1, vUv).rgb * uW.y',
-  '           + texture2D(tB2, vUv).rgb * uW.z) / max(0.0001, uW.x + uW.y + uW.z);',
-  '  c += bl * uBloom;',
+  '  if (uBloom > 0.0) {',
+  '    vec3 bl = (texture2D(tB0, vUv).rgb * uW.x',
+  '             + texture2D(tB1, vUv).rgb * uW.y',
+  '             + texture2D(tB2, vUv).rgb * uW.z) / max(0.0001, uW.x + uW.y + uW.z);',
+  '    c += bl * uBloom;',
+  '  }',
 
   /* 诊断：只看泛光 */
   '  if (uDebug > 0.5 && uDebug < 1.5) {',
-  '    gl_FragColor = vec4(toSRGB(aces(bl * 4.0 / 0.6)), 1.0);',
+  '    gl_FragColor = vec4(toSRGB(tonemap(texture2D(tB0, vUv).rgb * 4.0)), 1.0);',
   '    return;',
   '  }',
   /* 诊断：无后期基线（无泛光、无调色），用来确认画面本身立得住 */
   '  if (uDebug > 1.5 && uDebug < 2.5) {',
-  '    gl_FragColor = vec4(toSRGB(aces(texture2D(tScene, vUv).rgb * uExposure / 0.6)), 1.0);',
+  '    gl_FragColor = vec4(toSRGB(tonemap(texture2D(tScene, vUv).rgb * uExposure)), 1.0);',
   '    return;',
   '  }',
-  /* 诊断：阈值可视化，红=会泛光，蓝=不会 */
+  /* 诊断：亮度分区，红=过曝（>1），蓝=正常 */
   '  if (uDebug > 2.5) {',
   '    float l = dot(c, vec3(0.2126, 0.7152, 0.0722));',
   '    vec3 m = l > 1.0 ? vec3(1.0, 0.22, 0.10) : vec3(0.10, 0.30, 0.85);',
-  '    gl_FragColor = vec4(m * clamp(l * 0.8, 0.10, 1.0), 1.0);',
+  '    gl_FragColor = vec4(m * clamp(l * 0.9, 0.10, 1.0), 1.0);',
   '    return;',
   '  }',
 
-  '  c = aces(c * uExposure / 0.6);',
+  '  c = tonemap(c * uExposure);',
 
   /* 调色在显示域进行，顺序固定：lift/gain → 对比 → 饱和 */
   '  c = c * uGain + uLift * (1.0 - c);',
@@ -1067,9 +1179,10 @@ const finalMat = passMat([
   '  float luma = dot(c, vec3(0.2126, 0.7152, 0.0722));',
   '  c = mix(vec3(luma), c, mix(1.0, uSat, uGrade));',
 
-  /* 暗角 */
-  '  float vg = 1.0 - uVig * pow(clamp(length(vUv - 0.5) * 1.34, 0.0, 1.0), 2.3);',
-  '  c *= vg;',
+  /* 冷边收口：白底不能暗角（会脏），改成向浅蓝过渡，
+     视觉上像一张纸的四边，画面反而更"整"。 */
+  '  float vg = pow(clamp(length(vUv - vec2(0.5)) * 1.32, 0.0, 1.0), 2.5);',
+  '  c = mix(c, uEdge, vg * uVig);',
 
   '  gl_FragColor = vec4(toSRGB(c), 1.0);',
   '}'
@@ -1079,15 +1192,17 @@ const finalMat = passMat([
   tB1: { value: null },
   tB2: { value: null },
   uExposure: { value: LOOK.exposure },
-  uBloom: { value: LOOK.bloomStrength },
+  uBloom: { value: LOOK.bloomOn ? LOOK.bloomStrength : 0 },
   uContrast: { value: LOOK.contrast },
   uSat: { value: LOOK.saturation },
   uVig: { value: LOOK.vignette },
-  uBg: { value: LOOK.bgGlow },
   uGrade: { value: LOOK.gradeOn ? 1 : 0 },
   uDebug: { value: LOOK.debug },
+  uTM: { value: LOOK.tonemap === 'aces' ? 1 : 0 },
+  uShoulder: { value: LOOK.tmShoulder },
   uLift: { value: new THREE.Vector3(LOOK.lift[0], LOOK.lift[1], LOOK.lift[2]) },
   uGain: { value: new THREE.Vector3(LOOK.gain[0], LOOK.gain[1], LOOK.gain[2]) },
+  uEdge: { value: new THREE.Vector3(LOOK.edge[0], LOOK.edge[1], LOOK.edge[2]) },
   uW: { value: new THREE.Vector3(0.50, 0.32, 0.18) }
 });
 
@@ -1154,12 +1269,13 @@ function blurPass(src, dst, dirX, dirY, srcW, srcH) {
 function renderScene(dt) {
   updateQuality(dt);
 
-  /* 1 · 场景 → 线性 HDR 浮点缓冲 */
+  /* 1 · 场景 → 线性缓冲 */
   renderer.setRenderTarget(POST.rtScene);
   renderer.render(scene, camera);
   renderer.setRenderTarget(null);
 
-  /* 2 · 曝光自适应：亮部来得快，暗部退得慢 */
+  /* 2 · 曝光：浅色主题恒定为 1.0（adaptDark = 1.0 时不产生偏移），
+     保留阻尼是为了让 ?exp= 调试时不会突变 */
   const lightNorm = clamp(State.I / PHYS.iMax, 0, 1);
   const target = LOOK.exposure * (1 + (LOOK.adaptDark - 1) * (1 - lightNorm));
   const rate = target > POST.exposure ? LOOK.adaptUp : LOOK.adaptDown;
@@ -1199,7 +1315,9 @@ function renderScene(dt) {
   finalMat.uniforms.uContrast.value = LOOK.contrast;
   finalMat.uniforms.uSat.value = LOOK.saturation;
   finalMat.uniforms.uVig.value = LOOK.vignette;
-  finalMat.uniforms.uBg.value = LOOK.bgGlow;
+  finalMat.uniforms.uEdge.value.set(LOOK.edge[0], LOOK.edge[1], LOOK.edge[2]);
+  finalMat.uniforms.uTM.value = LOOK.tonemap === 'aces' ? 1 : 0;
+  finalMat.uniforms.uShoulder.value = LOOK.tmShoulder;
   finalMat.uniforms.uGrade.value = LOOK.gradeOn ? 1 : 0;
   finalMat.uniforms.uDebug.value = LOOK.debug;
   const lv = LOOK.bloomOn ? LOOK.bloomLevels : 3;
@@ -1484,7 +1602,7 @@ const respireRecords = [];
    成本只有一个 pow()，但叶子立刻“有厚度”了。 */
 const LEAF_TRANS = {
   uTransColor: { value: new THREE.Color(0x8ad98e) },
-  uTransAmt: { value: 0.030 }
+  uTransAmt: { value: 0.018 }
 };
 
 function withLeafGlow(mat) {
@@ -1512,7 +1630,7 @@ function withLeafGlow(mat) {
 /* --- 花盆 --- */
 (function buildPot() {
   const potMat = new THREE.MeshPhysicalMaterial({
-    color: 0xb4e6d8, transparent: true, opacity: 0.16,
+    color: 0xcfe0f2, transparent: true, opacity: 0.14,
     roughness: 0.06, metalness: 0, side: THREE.DoubleSide,
     depthWrite: false, clearcoat: 1, clearcoatRoughness: 0.06
   });
@@ -1521,26 +1639,37 @@ function withLeafGlow(mat) {
   plant.add(pot);
 
   const rimMat = new THREE.MeshStandardMaterial({
-    color: 0xa9e6d6, transparent: true, opacity: 0.5,
-    roughness: 0.16, metalness: 0.2, side: THREE.DoubleSide
+    color: 0x8fa8bf, transparent: true, opacity: 0.72,
+    roughness: 0.2, metalness: 0.25, side: THREE.DoubleSide
   });
-  [0.52, 0.006].forEach(function (y) {
+  /* 只留盆口一圈。底部再加一圈会在白地上形成一圈亮环，像托盘 */
+  [0.52].forEach(function (y) {
     const ring = new THREE.Mesh(new THREE.TorusGeometry(y > 0.4 ? 0.42 : 0.33, 0.009, 8, 60), rimMat);
     ring.rotation.x = Math.PI / 2;
     ring.position.y = y;
     plant.add(ring);
   });
 
+  /* 盆底：玻璃盆体是通透的，没有底的话根系会穿出盆沿往下掉 */
+  const base = new THREE.Mesh(
+    new THREE.CircleGeometry(0.332, 48),
+    new THREE.MeshStandardMaterial({ color: 0xb9cee2, roughness: 0.5, metalness: 0.05 })
+  );
+  base.rotation.x = -Math.PI / 2;
+  base.position.y = 0.016;
+  base.receiveShadow = true;
+  plant.add(base);
+
   const soilC = document.createElement('canvas');
   soilC.width = soilC.height = 256;
   const sg = soilC.getContext('2d');
-  sg.fillStyle = '#3a2a1c';
+  sg.fillStyle = '#5d4630';
   sg.fillRect(0, 0, 256, 256);
   for (let i = 0; i < 3200; i++) {
     const x = RNG() * 256, y = RNG() * 256;
     sg.fillStyle = RNG() > 0.5
-      ? 'rgba(92,68,42,' + (0.18 + RNG() * 0.5).toFixed(2) + ')'
-      : 'rgba(22,14,9,' + (0.18 + RNG() * 0.5).toFixed(2) + ')';
+      ? 'rgba(126,98,66,' + (0.18 + RNG() * 0.5).toFixed(2) + ')'
+      : 'rgba(46,32,20,' + (0.18 + RNG() * 0.5).toFixed(2) + ')';
     sg.fillRect(x, y, 1 + RNG() * 3, 1 + RNG() * 3);
   }
   const soilTex = new THREE.CanvasTexture(soilC);
@@ -1557,8 +1686,8 @@ function withLeafGlow(mat) {
 /* --- 根系 --- */
 (function buildRoots() {
   const rootMat = new THREE.MeshStandardMaterial({
-    color: 0xdccba4, roughness: 0.88, metalness: 0,
-    transparent: true, opacity: 0.55
+    color: 0x6b4a28, roughness: 0.92, metalness: 0,
+    transparent: true, opacity: 0.9
   });
   const N = 11;
   for (let i = 0; i < N; i++) {
@@ -1828,10 +1957,10 @@ function updatePlant(dt, time, grossNorm) {
       + Math.sin(ph * 1.9 + r.phase) * WIND.flutter * r.flex;
 
     /* 光合活跃时叶肉透光略强，叶片会“亮”起来 */
-    r.mat.emissiveIntensity = 0.018 + grossNorm * 0.135;
+    r.mat.emissiveIntensity = 0.010 + grossNorm * 0.072;
   }
 
-  LEAF_TRANS.uTransAmt.value = 0.028 + grossNorm * 0.032;
+  LEAF_TRANS.uTransAmt.value = 0.016 + grossNorm * 0.020;
 }
 
 /* ---- 30-particles.js ---- */
@@ -1848,10 +1977,12 @@ function makeDotTexture() {
   c.width = c.height = S;
   const g = c.getContext('2d');
   const rg = g.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+  /* 核心做实（0—0.50 全不透明），只在最外 1/4 处收边。
+     边缘越软，白底把颜色稀释得越厉害：一圈淡彩在浅色主题里等于没画。 */
   rg.addColorStop(0, 'rgba(255,255,255,1)');
-  rg.addColorStop(0.30, 'rgba(255,255,255,0.86)');
-  rg.addColorStop(0.62, 'rgba(255,255,255,0.28)');
-  rg.addColorStop(0.86, 'rgba(255,255,255,0.06)');
+  rg.addColorStop(0.50, 'rgba(255,255,255,1)');
+  rg.addColorStop(0.74, 'rgba(255,255,255,0.52)');
+  rg.addColorStop(0.90, 'rgba(255,255,255,0.12)');
   rg.addColorStop(1, 'rgba(255,255,255,0)');
   g.fillStyle = rg;
   g.beginPath();
@@ -1898,7 +2029,7 @@ const PT_FRAG = [
   '  if (t.a < 0.01) discard;',
   /* uGain 把粒子推到线性 1.0 以上：泛光只认过曝的部分，
      所以物质流的“亮”是亮度，不是加色叠加出来的假白 */
-  '  gl_FragColor = vec4(vColor * uGain, t.a * vAlpha);',
+  '  gl_FragColor = vec4(vColor * uGain, clamp(t.a * vAlpha * 1.35, 0.0, 1.0));',
   '}'
 ].join('\n');
 
@@ -2051,14 +2182,15 @@ Stream.prototype.update = function (dt) {
 };
 
 /* ---------- 五套流 ----------
-   gain 是 HDR 强度：刚好越过泛光阈值即可。
-   推到 2.0 以上三个通道同时饱和，粒子会变成白点，
-   O₂ 绿 / CO₂ 琥珀的颜色编码就废了——这个课上是要学生分辨的。 */
-const stO2 = new Stream({ max: 700, color: 0x62f2c0, size: 0.050, life: 2.6, jitter: 0.10, speed: 0.80, gain: 1.18 });
-const stCO2 = new Stream({ max: 560, color: 0xffb04a, size: 0.047, life: 2.2, jitter: 0.05, speed: 1.00, hasTgt: true, fadePow: 1.0, gain: 1.16 });
-const stH2O = new Stream({ max: 320, color: 0x5ec4ff, size: 0.043, life: 2.1, jitter: 0.03, speed: 0.85, hasTgt: true, swirl: 0.55, gain: 1.14 });
-const stSugar = new Stream({ max: 320, color: 0xffdc8a, size: 0.043, life: 2.4, jitter: 0.05, speed: 0.72, hasTgt: true, swirl: 0.25, gain: 1.10 });
-const stResp = new Stream({ max: 780, color: 0xff8a4a, size: 0.045, life: 3.0, jitter: 0.20, speed: 0.34, fadePow: 1.3, sizeVar: 0.45, gain: 1.06 });
+   浅色主题下 gain 固定 1.0（不再往线性 1.0 以上推）：
+   白底上"更亮"没有去处，推到 >1 只会让三个通道一起夹到白，
+   O₂ 绿 / CO₂ 琥珀的颜色编码当场失效——课上就靠这个分辨物质。
+   颜色本身加深，靠色相而不是亮度承担辨识。 */
+const stO2 = new Stream({ max: 700, color: 0x12a06a, size: 0.078, life: 2.6, jitter: 0.10, speed: 0.80, gain: 1.0 });
+const stCO2 = new Stream({ max: 560, color: 0xd98a2b, size: 0.074, life: 2.2, jitter: 0.05, speed: 1.00, hasTgt: true, fadePow: 1.0, gain: 1.0 });
+const stH2O = new Stream({ max: 320, color: 0x2f7fd0, size: 0.066, life: 2.1, jitter: 0.03, speed: 0.85, hasTgt: true, swirl: 0.55, gain: 1.0 });
+const stSugar = new Stream({ max: 320, color: 0xc79a12, size: 0.066, life: 2.4, jitter: 0.05, speed: 0.72, hasTgt: true, swirl: 0.25, gain: 1.0 });
+const stResp = new Stream({ max: 780, color: 0xe2653f, size: 0.070, life: 3.0, jitter: 0.20, speed: 0.34, fadePow: 1.3, sizeVar: 0.45, gain: 1.0 });
 
 /* ---------- 发射调度 ---------- */
 const emitAcc = { o2: 0, co2: 0, h2o: 0, sugar: 0, resp: 0 };
@@ -2178,12 +2310,12 @@ world.add(chamberGroup);
 (function buildChamber() {
   const geo = new THREE.BoxGeometry(CHAMBER.w, CHAMBER.h, CHAMBER.d);
   const glass = new THREE.MeshPhysicalMaterial({
-    color: 0xbfeee0,
+    color: 0xdcecfa,
     transparent: true,
-    opacity: 0.032,
-    roughness: 0.03,
+    opacity: 0.062,
+    roughness: 0.04,
     metalness: 0,
-    side: THREE.DoubleSide,
+    side: THREE.BackSide,
     depthWrite: false,
     clearcoat: 1,
     clearcoatRoughness: 0.04,
@@ -2194,13 +2326,14 @@ world.add(chamberGroup);
   box.renderOrder = 6;
   chamberGroup.add(box);
 
-  /* 菲涅尔边缘：玻璃的可读性来自掠射角的反射，不是均匀的灰底。
-     均匀 tint 加多少都像雾，掠射边缘一亮，箱体立刻成立。 */
+  /* 菲涅尔边缘。白底上不能再用加法混合——往白色里加什么都是白，
+     箱体会彻底消失。改成正常混合的蓝色描边：掠射角越强蓝得越实，
+     玻璃的"存在感"全部由这圈冷边提供。 */
   const rimGlass = new THREE.ShaderMaterial({
     uniforms: {
-      uColor: { value: new THREE.Color(0x9df0dc) },
-      uAmt: { value: 0.085 },
-      uPow: { value: 4.2 }
+      uColor: { value: new THREE.Color(0x2f6c96) },
+      uAmt: { value: 0.30 },
+      uPow: { value: 5.2 }
     },
     vertexShader: [
       'varying vec3 vN;',
@@ -2220,12 +2353,12 @@ world.add(chamberGroup);
       'varying vec3 vV;',
       'void main() {',
       '  float f = pow(1.0 - clamp(abs(dot(normalize(vN), normalize(vV))), 0.0, 1.0), uPow);',
-      '  gl_FragColor = vec4(uColor * f * uAmt, f * uAmt);',
+      '  gl_FragColor = vec4(uColor, f * uAmt);',
       '}'
     ].join('\n'),
     transparent: true,
     depthWrite: false,
-    blending: THREE.AdditiveBlending,
+    blending: THREE.NormalBlending,
     side: THREE.FrontSide
   });
   const shell = new THREE.Mesh(geo, rimGlass);
@@ -2236,15 +2369,15 @@ world.add(chamberGroup);
   /* 棱线 */
   const edges = new THREE.LineSegments(
     new THREE.EdgesGeometry(geo),
-    new THREE.LineBasicMaterial({ color: 0x8fe8d0, transparent: true, opacity: 0.30 })
+    new THREE.LineBasicMaterial({ color: 0x2b6a9c, transparent: true, opacity: 0.62 })
   );
   edges.position.y = CHAMBER.cy;
   chamberGroup.add(edges);
 
   /* 四角立柱 */
   const postMat = new THREE.MeshStandardMaterial({
-    color: 0x9ee6d4, roughness: 0.25, metalness: 0.55,
-    transparent: true, opacity: 0.55
+    color: 0xa9c2d6, roughness: 0.28, metalness: 0.42,
+    transparent: true, opacity: 0.5
   });
   const hx = CHAMBER.w / 2, hz = CHAMBER.d / 2;
   [[hx, hz], [-hx, hz], [hx, -hz], [-hx, -hz]].forEach(function (p) {
@@ -2257,8 +2390,8 @@ world.add(chamberGroup);
   const lid = new THREE.Mesh(
     new THREE.BoxGeometry(CHAMBER.w + 0.07, 0.035, CHAMBER.d + 0.07),
     new THREE.MeshStandardMaterial({
-      color: 0xa8e3d3, roughness: 0.18, metalness: 0.35,
-      transparent: true, opacity: 0.30
+      color: 0xc9dcee, roughness: 0.2, metalness: 0.3,
+      transparent: true, opacity: 0.42
     })
   );
   lid.position.y = CHAMBER.h + 0.017;
@@ -2269,10 +2402,10 @@ world.add(chamberGroup);
 const sensorPods = {};
 (function buildSensors() {
   const housingMat = new THREE.MeshStandardMaterial({
-    color: 0x233330, roughness: 0.45, metalness: 0.7
+    color: 0x46586a, roughness: 0.42, metalness: 0.6
   });
   const rodMat = new THREE.MeshStandardMaterial({
-    color: 0xb8c9c4, roughness: 0.28, metalness: 0.85
+    color: 0xc6d4e0, roughness: 0.3, metalness: 0.8
   });
 
   function pod(name, side, color) {
@@ -2301,19 +2434,20 @@ const sensorPods = {};
     tip.position.set(wx - side * 0.300, py, pz);
     g.add(tip);
 
-    /* 探头光晕 */
+    /* 探头光晕：白底上加法无效，改成正常混合的柔和色团，
+       读数越大色团越实、越大，本质仍是"示数的视觉编码" */
     const sc = document.createElement('canvas');
     sc.width = sc.height = 64;
     const sg = sc.getContext('2d');
     const rg = sg.createRadialGradient(32, 32, 0, 32, 32, 32);
-    rg.addColorStop(0, 'rgba(255,255,255,0.95)');
-    rg.addColorStop(0.4, 'rgba(255,255,255,0.28)');
+    rg.addColorStop(0, 'rgba(255,255,255,0.90)');
+    rg.addColorStop(0.4, 'rgba(255,255,255,0.26)');
     rg.addColorStop(1, 'rgba(255,255,255,0)');
     sg.fillStyle = rg; sg.fillRect(0, 0, 64, 64);
     const halo = new THREE.Sprite(new THREE.SpriteMaterial({
       map: new THREE.CanvasTexture(sc),
       color: color, transparent: true,
-      blending: THREE.AdditiveBlending, depthWrite: false, fog: false
+      blending: THREE.NormalBlending, depthWrite: false, fog: false
     }));
     halo.scale.set(0.30, 0.30, 1);
     halo.position.copy(tip.position);
@@ -2321,81 +2455,29 @@ const sensorPods = {};
 
     chamberGroup.add(g);
 
-    const lamp = new THREE.PointLight(color, 0.5, 1.4, 2);
+    const lamp = new THREE.PointLight(color, 0.35, 1.4, 2);
     lamp.position.copy(tip.position);
     chamberGroup.add(lamp);
 
     sensorPods[name] = { group: g, tip: tip, halo: halo, lamp: lamp, base: color };
   }
-  pod('co2', 1, 0xffb454);
-  pod('o2', -1, 0x6ee7c4);
+  pod('co2', 1, 0xd9822b);
+  pod('o2', -1, 0x18a06d);
 })();
 
-/* --- 光柱 --- */
-let beamMesh, sunSprite;
-(function buildBeam() {
-  const c = document.createElement('canvas');
-  c.width = 16; c.height = 256;
-  const g = c.getContext('2d');
-  const gr = g.createLinearGradient(0, 0, 0, 256);
-  gr.addColorStop(0, 'rgba(255,244,214,0.95)');
-  gr.addColorStop(0.25, 'rgba(255,240,200,0.55)');
-  gr.addColorStop(0.72, 'rgba(255,238,196,0.18)');
-  gr.addColorStop(1, 'rgba(255,238,196,0.0)');
-  g.fillStyle = gr;
-  g.fillRect(0, 0, 16, 256);
-  const tex = new THREE.CanvasTexture(c);
-  tex.wrapS = THREE.ClampToEdgeWrapping;
-  tex.wrapT = THREE.ClampToEdgeWrapping;
+/* --- 关于光柱 ---
+   暗场版本里那道锥形光柱是靠加法混合在近黑的底上"发"出来的。
+   白底上加法无从生效，改乘算又会因为锥壳的轮廓线在画面上留下一块
+   边缘生硬的暖色多边形——试过 0.25/0.45/0.75 三档，最淡的一档也还是一块脏色。
 
-  const sunPos = new THREE.Vector3(3.6, 6.8, 2.8);
-  const tgt = new THREE.Vector3(0, 1.35, 0);
-  const dir = new THREE.Vector3().subVectors(tgt, sunPos);
-  const h = dir.length();
-  dir.normalize();
+   更根本的问题是：光照强度是这个课的主变量，它的表达应当落在"读数"上，
+   而不是落在体积光这种氛围元素上。所以三维光柱整段去掉，
+   改由 ① 舞台右上角的 CSS 暖光角（纯装饰，不参与出图）
+       ② 常驻的「实验条件」卡片（光照 / 温度，纯净投影下也看得见）
+   两处共同承担。
+   叶片明暗本身由 60-ui.js 的 sun/hemi 强度直接驱动，随滑杆实时变化。 */
 
-  const cone = new THREE.ConeGeometry(2.05, h, 40, 1, true);
-  beamMesh = new THREE.Mesh(cone, new THREE.MeshBasicMaterial({
-    map: tex,
-    transparent: true,
-    opacity: 0.10,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-    side: THREE.DoubleSide,
-    fog: false
-  }));
-  const q = new THREE.Quaternion().setFromUnitVectors(
-    new THREE.Vector3(0, 1, 0), dir.clone().negate()
-  );
-  beamMesh.quaternion.copy(q);
-  beamMesh.position.copy(sunPos).add(dir.clone().multiplyScalar(h / 2));
-  beamMesh.frustumCulled = false;
-  beamMesh.renderOrder = 7;
-  world.add(beamMesh);
-
-  /* 光源光晕 */
-  const sc = document.createElement('canvas');
-  sc.width = sc.height = 128;
-  const sg = sc.getContext('2d');
-  const rg = sg.createRadialGradient(64, 64, 0, 64, 64, 64);
-  rg.addColorStop(0, 'rgba(255,255,240,1)');
-  rg.addColorStop(0.22, 'rgba(255,244,205,0.55)');
-  rg.addColorStop(1, 'rgba(255,240,190,0)');
-  sg.fillStyle = rg;
-  sg.fillRect(0, 0, 128, 128);
-  sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: new THREE.CanvasTexture(sc),
-    transparent: true,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-    fog: false
-  }));
-  sunSprite.scale.set(1.7, 1.7, 1);
-  sunSprite.position.copy(sunPos);
-  world.add(sunSprite);
-})();
-
-/* --- 浮尘（让光柱有体积感） --- */
+/* --- 浮尘（空气里有东西在动，箱体才不像一张纸） --- */
 let dust, dustAttr, dustSeed;
 (function buildDust() {
   const N = 260;
@@ -2417,11 +2499,11 @@ let dust, dustAttr, dustSeed;
   dust = new THREE.Points(geo, new THREE.PointsMaterial({
     size: 0.020,
     map: DOT_TEX,
-    color: 0xfff4d0,
+    color: 0x9db4c8,
     transparent: true,
     opacity: 0.0,
     depthWrite: false,
-    blending: THREE.AdditiveBlending,
+    blending: THREE.NormalBlending,
     sizeAttenuation: true,
     fog: false
   }));
@@ -2438,40 +2520,68 @@ function updateDust(dt, time, lightNorm) {
     if (p[i + 1] > 3.5) p[i + 1] = 0.15;
   }
   dustAttr.needsUpdate = true;
-  dust.material.opacity = 0.035 + lightNorm * 0.185;
+  dust.material.opacity = 0.018 + lightNorm * 0.105;
 }
 
 /* --- 传感器灯随读数变化 --- */
 function updateSensors(netSign, absNet, time) {
   const k = clamp(absNet / 10, 0, 1);
   const pulse = 0.82 + 0.18 * Math.sin((time || 0) * 3.2);
-  sensorPods.co2.lamp.intensity = (0.3 + k * 0.85) * pulse;
-  sensorPods.o2.lamp.intensity = (0.3 + k * 0.85) * pulse;
-  sensorPods.co2.halo.material.opacity = 0.25 + k * 0.6;
-  sensorPods.o2.halo.material.opacity = 0.25 + k * 0.6;
-  const h1 = 0.22 + k * 0.20, h2 = 0.22 + k * 0.20;
+  sensorPods.co2.lamp.intensity = (0.16 + k * 0.34) * pulse;
+  sensorPods.o2.lamp.intensity = (0.16 + k * 0.34) * pulse;
+  /* 白底上"更亮"没有空间可用，读数改用**色团的实度与尺寸**编码：
+     净光合越大，探头外的色晕越浓越大，学生一眼能看出强弱。 */
+  sensorPods.co2.halo.material.opacity = 0.18 + k * 0.52;
+  sensorPods.o2.halo.material.opacity = 0.18 + k * 0.52;
+  const h1 = 0.20 + k * 0.26, h2 = 0.20 + k * 0.26;
   sensorPods.co2.halo.scale.set(h1, h1, 1);
   sensorPods.o2.halo.scale.set(h2, h2, 1);
-  sensorPods.co2.tip.material.color.setHex(netSign > 0 ? 0xffb454 : 0x8a6a3a);
-  sensorPods.o2.tip.material.color.setHex(netSign > 0 ? 0x6ee7c4 : 0x3a6a5c);
-  /* 读数越强，探头越亮 —— 亮度是“示数”的视觉编码，不是装饰。
-     乘到线性 1.0 以上才会被泛光挑出来，读数大时探头自己会发光。 */
-  const hdr = 1.0 + k * 1.9;
-  sensorPods.co2.tip.material.color.multiplyScalar(hdr);
-  sensorPods.o2.tip.material.color.multiplyScalar(hdr);
-  sensorPods.co2.halo.material.color.setHex(netSign > 0 ? 0xffb454 : 0x8a6a3a);
-  sensorPods.o2.halo.material.color.setHex(netSign > 0 ? 0x6ee7c4 : 0x3a6a5c);
+  sensorPods.co2.tip.material.color.setHex(netSign > 0 ? 0xd9822b : 0x9a8a72);
+  sensorPods.o2.tip.material.color.setHex(netSign > 0 ? 0x18a06d : 0x6b8d84);
+  sensorPods.co2.halo.material.color.setHex(netSign > 0 ? 0xe89a3c : 0xb0a08a);
+  sensorPods.o2.halo.material.color.setHex(netSign > 0 ? 0x2fb37f : 0x8aa8a0);
 }
 
 /* ---- 50-curve.js ---- */
 /* =========================================================
    50 · 曲线面板：净光合曲线 + 总光合曲线 + 关键点标注
+
+   配色统一走 CH 调色板。暗底版本里大量用到"半透明白"，
+   在浅底上等于隐身，所以整组颜色必须按"纸面"重配：
+   网格浅灰蓝、文字深灰、三条语义色（净=蓝 / 总=绿 / 呼吸=橙）加深。
    ========================================================= */
 'use strict';
 
 const chartCanvas = document.getElementById('chart');
 const cctx = chartCanvas.getContext('2d');
 let chartW = 300, chartH = 200, chartDPR = 1;
+
+/* 语义色：净光合=蓝，总光合=绿，呼吸=橙，负值=红。
+   与 CSS 变量、HUD 图例、粒子流保持一致，全站只有这一套色。 */
+const CH = {
+  grid: 'rgba(22,34,46,0.075)',
+  axis: 'rgba(47,108,150,0.36)',
+  zero: 'rgba(22,34,46,0.30)',
+  tick: '#5b7183',
+  axisLab: '#8398a9',
+  negArea: 'rgba(217,69,58,0.065)',
+  ghost: 'rgba(96,140,180,0.30)',
+  ghostLab: '#93a6b6',
+  gross: 'rgba(16,150,99,0.80)',
+  net0: '#1f6fd0',
+  net1: '#3d94e8',
+  net2: '#63b3ff',
+  netGlow: 'rgba(63,148,232,0.30)',
+  resp: 'rgba(196,116,18,0.85)',
+  respLab: '#b06a10',
+  neg: '#d9453a',
+  negLab: '#c93a2e',
+  sat: 'rgba(16,150,99,0.95)',
+  satLab: '#0e8a5c',
+  dotFill: 'rgba(255,255,255,0.95)',
+  cross: 'rgba(22,34,46,0.16)',
+  note: '#8398a9'
+};
 
 function resizeChart() {
   const box = chartCanvas.getBoundingClientRect();
@@ -2515,11 +2625,11 @@ function drawChart() {
 
   /* --- 负值区底纹 --- */
   const yZero = yOf(0);
-  cctx.fillStyle = 'rgba(255,122,107,0.055)';
+  cctx.fillStyle = CH.negArea;
   cctx.fillRect(plotL, yZero, plotW, plotB - yZero);
 
   /* --- 网格 --- */
-  cctx.strokeStyle = 'rgba(255,255,255,0.055)';
+  cctx.strokeStyle = CH.grid;
   cctx.lineWidth = 1;
   const yStep = (yMax - yMin) > 40 ? 10 : 5;
   for (let v = Math.ceil(yMin / yStep) * yStep; v <= yMax; v += yStep) {
@@ -2532,14 +2642,14 @@ function drawChart() {
   }
 
   /* --- 坐标轴 --- */
-  cctx.strokeStyle = 'rgba(140,200,182,0.34)';
+  cctx.strokeStyle = CH.axis;
   cctx.beginPath();
   cctx.moveTo(plotL + 0.5, plotT); cctx.lineTo(plotL + 0.5, plotB + 0.5);
   cctx.lineTo(plotR, plotB + 0.5);
   cctx.stroke();
 
   /* --- 零线 --- */
-  cctx.strokeStyle = 'rgba(255,255,255,0.34)';
+  cctx.strokeStyle = CH.zero;
   cctx.lineWidth = 1;
   cctx.beginPath();
   cctx.moveTo(plotL, Math.round(yZero) + 0.5);
@@ -2547,7 +2657,7 @@ function drawChart() {
   cctx.stroke();
 
   /* --- 坐标刻度 --- */
-  cctx.fillStyle = 'rgba(147,173,166,0.85)';
+  cctx.fillStyle = CH.tick;
   cctx.font = '10px ui-monospace,Consolas,monospace';
   cctx.textAlign = 'right'; cctx.textBaseline = 'middle';
   for (let v = Math.ceil(yMin / yStep) * yStep; v <= yMax; v += yStep) {
@@ -2563,12 +2673,12 @@ function drawChart() {
     cctx.fillText(String(Math.round(PHYS.iMax * i / 4)), xp, plotB + 6);
   }
   cctx.textAlign = 'center';
-  cctx.fillStyle = 'rgba(147,173,166,0.62)';
+  cctx.fillStyle = CH.axisLab;
   cctx.font = '9px "PingFang SC","Microsoft YaHei",sans-serif';
   cctx.fillText('光照强度 μmol·m⁻²·s⁻¹', (plotL + plotR) / 2, plotB + 20);
 
   cctx.textAlign = 'left'; cctx.textBaseline = 'top';
-  cctx.fillStyle = 'rgba(147,173,166,0.5)';
+  cctx.fillStyle = CH.axisLab;
   cctx.fillText('μmol CO₂·m⁻²·s⁻¹', plotL + 2, 3);
 
   /* --- 温度对照鬼影线（演示态） --- */
@@ -2584,12 +2694,13 @@ function drawChart() {
         const x = xOf(I), y = yOf(v);
         i === 0 ? cctx.moveTo(x, y) : cctx.lineTo(x, y);
       }
-      cctx.strokeStyle = 'rgba(126,182,255,0.13)';
+      cctx.strokeStyle = CH.ghost;
       cctx.lineWidth = 1;
-      cctx.setLineDash([]);
+      cctx.setLineDash([2, 3]);
       cctx.stroke();
+      cctx.setLineDash([]);
       const vEnd = netOf(PHYS.iMax, T, State.C, State.O, State.whole);
-      cctx.fillStyle = 'rgba(147,173,166,0.55)';
+      cctx.fillStyle = CH.ghostLab;
       cctx.font = '9px ui-monospace,Consolas,monospace';
       cctx.textAlign = 'right'; cctx.textBaseline = 'middle';
       cctx.fillText(T + '℃', plotR - 2, yOf(vEnd) + (T > State.T ? 9 : -9));
@@ -2612,8 +2723,8 @@ function drawChart() {
     const x = xOf(I), y = yOf(v);
     i === 0 ? cctx.moveTo(x, y) : cctx.lineTo(x, y);
   }
-  cctx.strokeStyle = 'rgba(88,226,168,0.62)';
-  cctx.lineWidth = 1.6;
+  cctx.strokeStyle = CH.gross;
+  cctx.lineWidth = 1.7;
   cctx.setLineDash([5, 4]);
   cctx.stroke();
   cctx.setLineDash([]);
@@ -2627,13 +2738,13 @@ function drawChart() {
     i === 0 ? cctx.moveTo(x, y) : cctx.lineTo(x, y);
   }
   const grad = cctx.createLinearGradient(plotL, 0, plotR, 0);
-  grad.addColorStop(0, '#7eb6ff');
-  grad.addColorStop(0.55, '#8ec9ff');
-  grad.addColorStop(1, '#b6e2ff');
+  grad.addColorStop(0, CH.net0);
+  grad.addColorStop(0.55, CH.net1);
+  grad.addColorStop(1, CH.net2);
   cctx.strokeStyle = grad;
   cctx.lineWidth = 2.4;
-  cctx.shadowColor = 'rgba(126,182,255,0.55)';
-  cctx.shadowBlur = 8;
+  cctx.shadowColor = CH.netGlow;
+  cctx.shadowBlur = 6;
   cctx.stroke();
   cctx.shadowBlur = 0;
   cctx.restore();
@@ -2645,7 +2756,7 @@ function drawChart() {
   if (curI > 30) {
     const x = xOf(curI);
     const y1 = yOf(nNow), y2 = yOf(gNow);
-    cctx.strokeStyle = 'rgba(255,180,84,0.75)';
+    cctx.strokeStyle = CH.resp;
     cctx.lineWidth = 1;
     cctx.setLineDash([3, 3]);
     cctx.beginPath();
@@ -2657,7 +2768,7 @@ function drawChart() {
     cctx.moveTo(x - 3, y2); cctx.lineTo(x + 3, y2);
     cctx.stroke();
     if (Math.abs(y2 - y1) > 14) {
-      cctx.fillStyle = 'rgba(255,180,84,0.95)';
+      cctx.fillStyle = CH.respLab;
       cctx.font = '9px "PingFang SC",sans-serif';
       cctx.textAlign = 'left'; cctx.textBaseline = 'middle';
       cctx.fillText('呼吸', x + 5, (y1 + y2) / 2);
@@ -2669,14 +2780,14 @@ function drawChart() {
     const x = xOf(State.comp), y = yOf(0);
     cctx.beginPath();
     cctx.arc(x, y, 3.6, 0, 6.2832);
-    cctx.fillStyle = '#ff7a6b';
+    cctx.fillStyle = CH.neg;
     cctx.fill();
-    cctx.strokeStyle = 'rgba(255,122,107,0.5)';
+    cctx.strokeStyle = 'rgba(217,69,58,0.45)';
     cctx.lineWidth = 1;
     cctx.beginPath();
     cctx.arc(x, y, 7, 0, 6.2832);
     cctx.stroke();
-    cctx.fillStyle = '#ff9c8f';
+    cctx.fillStyle = CH.negLab;
     cctx.font = '9.5px "PingFang SC",sans-serif';
     cctx.textAlign = 'left'; cctx.textBaseline = 'bottom';
     cctx.fillText('光补偿点', Math.min(x + 9, plotR - 44), y - 5);
@@ -2687,9 +2798,9 @@ function drawChart() {
     const x = xOf(State.sat), y = yOf(grossAt(State.sat, State.T, State.C, State.O));
     cctx.beginPath();
     cctx.arc(x, y, 3.2, 0, 6.2832);
-    cctx.fillStyle = 'rgba(88,226,168,0.95)';
+    cctx.fillStyle = CH.sat;
     cctx.fill();
-    cctx.fillStyle = 'rgba(120,235,190,0.9)';
+    cctx.fillStyle = CH.satLab;
     cctx.font = '9.5px "PingFang SC",sans-serif';
     cctx.textAlign = 'center';
     const above = y > plotT + 42;
@@ -2706,15 +2817,15 @@ function drawChart() {
       const px = xOf(p.I), py = yOf(p.net);
       cctx.beginPath();
       cctx.arc(px, py, 4.0, 0, 6.2832);
-      cctx.fillStyle = 'rgba(6,16,26,0.9)';
+      cctx.fillStyle = CH.dotFill;
       cctx.fill();
       cctx.beginPath();
       cctx.arc(px, py, 4.0, 0, 6.2832);
-      cctx.strokeStyle = p.net >= 0 ? '#7eb6ff' : '#ff7a6b';
+      cctx.strokeStyle = p.net >= 0 ? CH.net0 : CH.neg;
       cctx.lineWidth = 1.7;
       cctx.stroke();
       if (REC.pts.length <= 8) {
-        cctx.fillStyle = 'rgba(147,173,166,0.85)';
+        cctx.fillStyle = CH.note;
         cctx.font = '8px "PingFang SC",sans-serif';
         cctx.textAlign = 'center'; cctx.textBaseline = 'bottom';
         cctx.fillText(String(i + 1), px, py - 5);
@@ -2726,31 +2837,31 @@ function drawChart() {
   const cx = xOf(curI), cy = yOf(nNow);
   cctx.beginPath();
   cctx.moveTo(cx, plotT); cctx.lineTo(cx, plotB);
-  cctx.strokeStyle = 'rgba(255,255,255,0.13)';
+  cctx.strokeStyle = CH.cross;
   cctx.lineWidth = 1;
   cctx.stroke();
   cctx.beginPath();
   cctx.arc(cx, cy, 5.2, 0, 6.2832);
-  cctx.fillStyle = nNow >= 0 ? '#cfe6ff' : '#ffb0a6';
-  cctx.shadowColor = nNow >= 0 ? 'rgba(140,200,255,0.9)' : 'rgba(255,140,120,0.9)';
-  cctx.shadowBlur = 12;
+  cctx.fillStyle = nNow >= 0 ? CH.net0 : CH.neg;
+  cctx.shadowColor = nNow >= 0 ? 'rgba(31,111,208,0.45)' : 'rgba(217,69,58,0.45)';
+  cctx.shadowBlur = 9;
   cctx.fill();
   cctx.shadowBlur = 0;
   cctx.beginPath();
   cctx.arc(cx, cy, 5.2, 0, 6.2832);
-  cctx.strokeStyle = '#06101a';
-  cctx.lineWidth = 1.4;
+  cctx.strokeStyle = '#ffffff';
+  cctx.lineWidth = 1.6;
   cctx.stroke();
 
   /* --- 区域注释 --- */
   if (State.comp !== null && State.comp > 260) {
-    cctx.fillStyle = 'rgba(255,122,107,0.55)';
+    cctx.fillStyle = 'rgba(201,58,46,0.70)';
     cctx.font = '9px "PingFang SC",sans-serif';
     cctx.textAlign = 'left'; cctx.textBaseline = 'middle';
     cctx.fillText('净光合 < 0', plotL + 6, yZero + 12);
   }
   if (State.sat !== null) {
-    cctx.fillStyle = 'rgba(88,226,168,0.42)';
+    cctx.fillStyle = 'rgba(14,138,92,0.62)';
     cctx.font = '9px "PingFang SC",sans-serif';
     cctx.textAlign = 'center'; cctx.textBaseline = 'top';
     const sx = (xOf(State.sat) + plotR) / 2;
@@ -2778,6 +2889,7 @@ const el = {
   ledgerSub: $('ledgerSub'),
   co2Val: $('co2Val'), o2Val: $('o2Val'),
   co2Trend: $('co2Trend'), o2Trend: $('o2Trend'),
+  condLight: $('condLight'), condTemp: $('condTemp'), stageGlow: $('stageGlow'),
   nrTag: $('nrTag'), nrText: $('nrText'),
   chartFoot: $('chartFoot'),
   taskPanel: $('taskPanel'), taskList: $('taskList'),
@@ -2825,14 +2937,18 @@ function updateReadouts(dt) {
   if (r.net >= 0) {
     el.bpFill.style.left = '50%';
     el.bpFill.style.width = w + '%';
-    el.bpFill.style.background = '#7eb6ff';
+    el.bpFill.style.background = '#1f6fd0';
   } else {
     el.bpFill.style.left = (50 - w) + '%';
     el.bpFill.style.width = w + '%';
-    el.bpFill.style.background = '#ff7a6b';
+    el.bpFill.style.background = '#d9453a';
   }
 
   el.ledgerSub.textContent = State.T + ' ℃ · ' + State.C + ' ppm · ' + State.O + '% O₂';
+
+  /* 舞台内常驻条件卡（纯净投影时唯一的光照/温度读数） */
+  if (el.condLight) el.condLight.textContent = String(Math.round(State.I));
+  if (el.condTemp) el.condTemp.textContent = String(Math.round(State.T));
 
   /* 箱内读数 */
   const cO2 = Math.round(State.chamberCO2);
@@ -3072,16 +3188,16 @@ function stepFrame(dt) {
   State.chamberO2 = clamp(
     State.O + (State.chamberO2 - State.O) * Math.exp(-dt / 42) + net * 0.0009 * dt, 3, 60);
 
-  /* 光照视觉 */
+  /* 光照视觉。浅底场景里"变暗"不能靠把画面压黑——底板始终是白的，
+     太阳光只负责植株的明暗与投影，所以动态范围收窄、底噪抬高，
+     黑暗中仍能看清叶片结构（这也是暗态还要观察呼吸流的前提）。 */
   const ln = clamp(State.I / PHYS.iMax, 0, 1);
-  sun.intensity = 0.25 + ln * 1.95;
-  hemi.intensity = 0.34 + ln * 0.28;
-  /* 光柱和日冕都是加色图层，在 HDR 里会连片泛光，必须克制 */
-  beamMesh.material.opacity = 0.022 + ln * 0.125;
-  sunSprite.material.opacity = 0.12 + ln * 0.52;
-  const ss = 1.02 + ln * 0.62;
-  sunSprite.scale.set(ss, ss, 1);
-  rootGlow.intensity = clamp(State.rates.resp / 5, 0, 1.2) * 0.55;
+  sun.intensity = 0.30 + ln * 1.05;
+  hemi.intensity = 0.58 + ln * 0.22;
+  /* 光照强度不再用三维光柱表达（见 40-chamber.js 说明），
+     改为舞台右上角的暖光角 + 「实验条件」卡片。 */
+  if (el.stageGlow) el.stageGlow.style.opacity = (0.06 + ln * 0.94).toFixed(3);
+  rootGlow.intensity = clamp(State.rates.resp / 5, 0, 1.2) * 0.30;
 
   /* 植株与粒子 */
   const grossNorm = clamp(State.rates.gross / 27, 0, 1.1);
@@ -3291,14 +3407,15 @@ RECE.clear.addEventListener('click', clearRec);
    纯净投影 / 全屏
    --------------------------------------------------------- */
 let pureOn = false;
-function togglePure() {
-  pureOn = !pureOn;
+function setPure(v) {
+  pureOn = !!v;
   document.body.classList.toggle('pure', pureOn);
   const btn = document.getElementById('btnPure');
   if (btn) btn.textContent = pureOn ? '退出纯净' : '纯净';
   /* 隐藏面板后画布尺寸变了，必须重排 */
   setTimeout(function () { resize(); resizeChart(); }, 40);
 }
+function togglePure() { setPure(!pureOn); }
 
 function toggleFull() {
   try {
@@ -3348,6 +3465,24 @@ document.addEventListener('keydown', function (e) {
 renderRec();
 setQ(0);
 
+/* 投影场景常直接开一个"只剩植株"的地址，省得课前手忙脚乱。
+   ?pure=1 进纯净态，?q=7 直接落到第 7 问。 */
+(function readURL() {
+  let q = '';
+  try { q = String(location.search || '').replace(/^\?/, ''); } catch (e) { q = ''; }
+  if (!q) return;
+  const kv = {};
+  q.split('&').forEach(function (pair) {
+    const i = pair.indexOf('=');
+    if (i > 0) kv[pair.slice(0, i)] = pair.slice(i + 1);
+  });
+  if (kv.q) {
+    const n = parseInt(kv.q, 10);
+    if (n >= 1 && n <= QUESTIONS.length) setQ(n - 1);   /* 必须跑 setup，场景要跟着走 */
+  }
+  if (kv.pure === '1') setPure(true);
+})();
+
 /* 暴露给验证脚本 */
 window.__lesson = {
   questions: QUESTIONS,
@@ -3355,7 +3490,8 @@ window.__lesson = {
   index: function () { return qIndex; },
   record: recordPoint,
   recordCount: function () { return REC.pts.length; },
-  pure: function () { return pureOn; }
+  pure: function () { return pureOn; },
+  setPure: setPure
 };
 
 </script>
