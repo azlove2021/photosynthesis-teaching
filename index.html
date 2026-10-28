@@ -129,6 +129,41 @@ body{
   background:rgba(255,255,255,.85);padding:5px 10px;border-radius:8px;border:1px solid var(--line);
 }
 
+/* ---------- 语音讲解 ---------- */
+/* 讲解开着时顶栏按钮要有明确的"正在工作"状态，否则老师不知道下一句会不会突然响 */
+.ghost-btn.on{
+  background:rgba(31,111,208,.10);color:var(--blue-d);border-color:rgba(31,111,208,.45);
+  font-weight:600;box-shadow:0 0 0 3px rgba(31,111,208,.08);
+}
+.ghost-btn.speaking::after{
+  content:"";display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:var(--blue);margin-left:6px;vertical-align:middle;
+  animation:vpulse 1.1s ease-in-out infinite;
+}
+@keyframes vpulse{0%,100%{opacity:.35;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+
+/* 字幕常驻在舞台底部：投影时后排听不清、或本机没装中文语音，都靠它 */
+.vsub{
+  position:absolute;left:50%;bottom:52px;transform:translateX(-50%);
+  z-index:5;display:flex;align-items:flex-start;gap:8px;
+  width:max-content;max-width:min(720px,84%);
+  background:rgba(255,255,255,.965);border:1px solid var(--line2);border-radius:12px;
+  padding:10px 13px;box-shadow:0 10px 26px rgba(16,32,48,.14);
+  backdrop-filter:blur(6px);
+  animation:vsubin .18s ease-out;
+}
+@keyframes vsubin{from{opacity:0;transform:translateX(-50%) translateY(6px)}to{opacity:1;transform:translateX(-50%)}}
+.vsub-dot{
+  width:7px;height:7px;border-radius:50%;background:var(--blue);
+  margin-top:6px;flex:0 0 auto;animation:vpulse 1.1s ease-in-out infinite;
+}
+.vsub-tx{font-size:13.5px;line-height:1.6;color:var(--tx);letter-spacing:.2px}
+.vsub-x{
+  border:0;background:#eef4fa;color:var(--tx2);font-family:var(--sans);
+  font-size:11px;padding:3px 8px;border-radius:6px;cursor:pointer;flex:0 0 auto;margin-top:1px;
+}
+.vsub-x:hover{background:#e2ecf7;color:var(--blue-d)}
+
 /* ---------- side ---------- */
 /* 四行：对账 / 曲线（伸缩）/ 任务（探究态才有）/ 化学式抽屉（常驻，折叠时一行） */
 .side{display:grid;grid-template-rows:auto minmax(0,1fr) auto auto;gap:10px;min-height:0}
@@ -137,23 +172,23 @@ body{
   padding:12px 14px;min-height:0;box-shadow:var(--sh1);
 }
 .p-cap{font-size:11.5px;color:var(--tx2);letter-spacing:.5px;display:flex;align-items:baseline;justify-content:space-between;gap:8px}
-.p-sub{font-size:10.5px;color:var(--tx3);letter-spacing:0}
+.p-sub{font-size:11.5px;color:var(--tx3);letter-spacing:0}
 
 .eqrow{display:flex;align-items:flex-end;justify-content:space-between;gap:4px;margin-top:9px}
 .cell{flex:1;text-align:center}
 .cv{font-family:var(--mono);font-size:27px;font-weight:600;line-height:1.05;font-variant-numeric:tabular-nums;transition:color .2s}
-.cl{font-size:10.5px;color:var(--tx3);margin-top:3px}
+.cl{font-size:11.5px;color:var(--tx3);margin-top:3px}
 .c-gross .cv{color:var(--green)}
 .c-resp .cv{color:var(--amber)}
 .c-net .cv{color:var(--blue)}
 .c-net.neg .cv{color:var(--red)}
 .op{font-size:17px;color:var(--tx3);padding-bottom:15px}
 
-.unit-line{font-size:10px;color:var(--tx3);margin-top:6px;text-align:center;letter-spacing:.2px}
+.unit-line{font-size:10.5px;color:var(--tx3);margin-top:6px;text-align:center;letter-spacing:.2px}
 
 /* 口径切换的唯一定量证据：曲线位移只有 0.47，看图看不出来，只能给数 */
 .split-line{
-  font-size:10px;color:var(--amber-d);margin-top:4px;text-align:center;line-height:1.45;
+  font-size:11px;color:var(--amber-d);margin-top:4px;text-align:center;line-height:1.45;
   background:rgba(200,130,14,.09);border-radius:6px;padding:2px 8px;
 }
 .split-line.leaf{color:var(--blue-d);background:rgba(31,111,208,.075)}
@@ -164,11 +199,11 @@ body{
 .bp-fill{position:absolute;top:0;bottom:0;left:50%;width:0;background:var(--blue);border-radius:4px;transition:background .2s}
 .bp-lab{display:flex;justify-content:space-between;font-size:9.5px;color:var(--tx3);margin-top:3px}
 
-.ledger-note{font-size:10.5px;color:var(--tx3);margin-top:7px;text-align:center;min-height:14px}
+.ledger-note{font-size:11.5px;color:var(--tx3);margin-top:7px;text-align:center;min-height:14px}
 
 .chartp{display:flex;flex-direction:column;padding-bottom:8px}
 #chart{flex:1;width:100%;min-height:150px;display:block;margin-top:6px}
-.chart-foot{font-size:10px;color:var(--tx3);text-align:center;padding-top:2px}
+.chart-foot{font-size:11.5px;color:var(--tx3);text-align:center;padding-top:2px}
 
 .taskp{max-height:190px;overflow:auto}
 .tasklist{margin-top:8px;display:flex;flex-direction:column;gap:6px}
@@ -177,9 +212,9 @@ body{
   background:var(--panel2);border:1px solid transparent;cursor:pointer;transition:.18s;
 }
 .task:hover{background:#eef6fd;border-color:var(--line2)}
-.task .tn{font-family:var(--mono);font-size:11px;color:var(--blue);padding-top:1px}
-.task .tt{font-size:11.5px;color:var(--tx);line-height:1.45}
-.task .td{font-size:10.5px;color:var(--tx3);line-height:1.5;margin-top:2px}
+.task .tn{font-family:var(--mono);font-size:12px;color:var(--blue);padding-top:1px}
+.task .tt{font-size:12.5px;color:var(--tx);line-height:1.45}
+.task .td{font-size:11.5px;color:var(--tx3);line-height:1.5;margin-top:2px}
 .task.done{opacity:.55}
 .task.done .tn{color:var(--tx3)}
 
@@ -195,7 +230,7 @@ body{
   border-radius:14px;transition:background .16s;
 }
 .chem-head:hover{background:#f7fbff}
-.chem-t{font-size:11.5px;color:var(--tx2);letter-spacing:.5px;display:flex;align-items:center;gap:7px}
+.chem-t{font-size:12.5px;color:var(--tx2);letter-spacing:.5px;display:flex;align-items:center;gap:7px}
 .chem-t::before{
   content:"";width:6px;height:6px;border-radius:50%;background:var(--green);
   box-shadow:0 0 0 3px rgba(15,155,100,.13);
@@ -212,10 +247,10 @@ body{
 .cg{padding:7px 0;border-bottom:1px dashed var(--line)}
 .cg:first-child{padding-top:2px}
 .cg.last{border-bottom:0;padding-bottom:2px}
-.cg-h{font-size:11px;font-weight:600;color:var(--blue-d);letter-spacing:.4px;margin-bottom:4px}
-.csub{font-size:9.5px;color:var(--tx3);margin:4px 0 1px;letter-spacing:.3px}
+.cg-h{font-size:12px;font-weight:600;color:var(--blue-d);letter-spacing:.4px;margin-bottom:4px}
+.csub{font-size:10.5px;color:var(--tx3);margin:4px 0 1px;letter-spacing:.3px}
 .fml{
-  font-family:var(--mono);font-size:11.5px;color:var(--tx);line-height:1.72;
+  font-family:var(--mono);font-size:12.5px;color:var(--tx);line-height:1.72;
   letter-spacing:.1px;white-space:nowrap;overflow-x:auto;overflow-y:hidden;
   scrollbar-width:none;
 }
@@ -231,7 +266,7 @@ body{
    线压在 padding 里就会被字压穿（第一版就是这样，箭头横穿"光能·叶绿体"）。 */
 .arw{
   display:inline-block;position:relative;margin:0 9px 1px;padding:0 2px 8px;
-  font-family:var(--sans);font-size:9px;line-height:1.3;color:#7b8fa1;
+  font-family:var(--sans);font-size:9.5px;line-height:1.3;color:#7b8fa1;
   white-space:nowrap;vertical-align:1px;text-align:center;min-width:52px;
 }
 .arw::before{
@@ -243,7 +278,7 @@ body{
   border-left:4.5px solid #a8c0d6;
   border-top:2.5px solid transparent;border-bottom:2.5px solid transparent;
 }
-.cnote{font-size:10px;color:var(--tx2);line-height:1.52;margin-top:4px}
+.cnote{font-size:11px;color:var(--tx2);line-height:1.52;margin-top:4px}
 .cnote b{color:var(--tx);font-weight:600}
 
 /* ---------- controls ---------- */
@@ -327,12 +362,12 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.18)}
 }
 .lb-state{display:flex;align-items:baseline;gap:8px;margin-top:6px;min-width:0}
 .lb-state-tx{
-  font-size:12.5px;color:var(--tx2);line-height:1.5;
+  font-size:13.5px;color:var(--tx2);line-height:1.5;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 .lb-chips{display:flex;flex-direction:column;gap:4px}
 .chip{
-  font-size:11px;color:var(--tx2);border:1px dashed #c0d5e8;border-radius:20px;
+  font-size:12px;color:var(--tx2);border:1px dashed #c0d5e8;border-radius:20px;
   padding:2.5px 11px;white-space:nowrap;transition:.3s;letter-spacing:.2px;background:#fff;
 }
 .chip.on{
@@ -343,19 +378,19 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.18)}
 /* ---------- 实验记录 ---------- */
 .recstrip{margin-top:7px;border-top:1px solid var(--line);padding-top:7px;flex:0 0 auto}
 .rec-head{display:flex;align-items:center;gap:6px}
-.rec-title{font-size:10.5px;color:var(--tx2);letter-spacing:.5px}
-.rec-count{font-family:var(--mono);font-size:10px;color:var(--tx3);margin-right:auto}
+.rec-title{font-size:11.5px;color:var(--tx2);letter-spacing:.5px}
+.rec-count{font-family:var(--mono);font-size:11px;color:var(--tx3);margin-right:auto}
 .rec-btn{
   border:1px solid rgba(31,111,208,.35);background:rgba(31,111,208,.08);color:var(--blue-d);
-  font-family:var(--sans);font-size:10.5px;padding:3px 9px;border-radius:6px;cursor:pointer;transition:.16s;
+  font-family:var(--sans);font-size:11.5px;padding:3px 10px;border-radius:6px;cursor:pointer;transition:.16s;
 }
 .rec-btn:hover{background:rgba(31,111,208,.16)}
 .rec-btn.ghost{border-color:var(--line);background:#fff;color:var(--tx3)}
 .rec-btn.ghost:hover{color:var(--tx2);background:#f4f9fe}
 .rec-body{max-height:76px;overflow:auto;margin-top:5px}
 .recstrip.empty .rec-body,.recstrip.empty .rec-btn.ghost{display:none}
-.rec-empty{font-size:10px;color:var(--tx3);line-height:1.55}
-.rec-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10px}
+.rec-empty{font-size:11px;color:var(--tx3);line-height:1.55}
+.rec-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11.5px}
 .rec-table th{
   font-weight:500;color:var(--tx3);text-align:right;padding:2px 4px;
   border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;
@@ -430,6 +465,7 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.18)}
         <button data-mode="demo" class="on">演示态</button>
         <button data-mode="lab">探究态</button>
       </div>
+      <button class="ghost-btn" id="btnVoice" title="语音讲解（V）：开启后切题、记录、展开化学式都会自动朗读">讲解</button>
       <button class="ghost-btn" id="btnReset" title="回到教材标准状态（空格）">重置</button>
       <button class="ghost-btn" id="btnPure" title="隐藏所有面板，只留植株（H）">纯净</button>
       <button class="ghost-btn" id="btnFull" title="全屏（F）">全屏</button>
@@ -481,6 +517,13 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.18)}
       </div>
 
       <div class="stage-hint">拖动旋转 &nbsp;·&nbsp; 滚轮缩放 &nbsp;·&nbsp; 双击复位视角</div>
+
+      <!-- 语音字幕：投影时后排听不清也要看得见；本机没装中文语音时它就是唯一出口 -->
+      <div class="vsub" id="vsub" hidden>
+        <span class="vsub-dot"></span>
+        <span class="vsub-tx" id="vsubTx"></span>
+        <button class="vsub-x" id="vsubStop" title="停止朗读（Esc）">停止</button>
+      </div>
     </section>
 
     <aside class="side">
@@ -713,6 +756,7 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.18)}
       <li><b>↑ ↓</b>：调光强，按住 Shift 走大步。投影时不用去够滑杆。</li>
       <li><b>R</b>：记录此刻的读数，实测点会标到曲线上。</li>
       <li><b>C</b>：展开 / 收起「化学式与能量流」（光合与呼吸的方程式、三阶段、2870 kJ 与 1161 kJ）。</li>
+      <li><b>V</b>：开 / 关语音讲解。开启后，切题、记录、展开化学式都会自动朗读对应的一小段；<b>Esc</b> 立即停。</li>
       <li><b>H</b>：纯净模式，隐藏全部面板只留植株；再按一次恢复。</li>
       <li><b>F</b>：全屏。<b>空格</b>：回到教材标准状态（800、25 ℃、400 ppm、21% O₂）。</li>
       <li><b>拖动 / 滚轮 / 双击</b>：旋转 / 缩放 / 回到初始视角。</li>
@@ -2996,7 +3040,8 @@ const CH = {
   net2: '#63b3ff',
   netGlow: 'rgba(63,148,232,0.30)',
   resp: 'rgba(196,116,18,0.85)',
-  respLab: '#b06a10',
+  respLine: 'rgba(196,116,18,0.62)',
+  respLab: '#a8620d',
   neg: '#d9453a',
   negLab: '#c93a2e',
   sat: 'rgba(16,150,99,0.95)',
@@ -3019,7 +3064,8 @@ function resizeChart() {
   if (typeof drawChart === 'function') drawChart();
 }
 
-const CP = { l: 50, r: 18, t: 24, b: 38 };
+/* 边距按"投影可读"重新配：刻度 12px、轴标题 10.5px，左边要放得下两位数字 */
+const CP = { l: 62, r: 22, t: 30, b: 48 };
 
 function netOf(I, T, C, O, whole) {
   return grossAt(I, T, C, O) - respAt(T, whole);
@@ -3073,7 +3119,12 @@ function drawChart() {
   /* --- 网格 --- */
   cctx.strokeStyle = CH.grid;
   cctx.lineWidth = 1;
-  const yStep = (yMax - yMin) > 40 ? 10 : 5;
+  /* 刻度密度跟着可用高度走。
+     12px 的刻度字号在 1440×900 上 5 一格正好；换到 1280×800 的投影仪，
+     画布只有百来像素高，5 一格就挤成一条黑杠（实测数字互相压住）。
+     这里按"每格至少 15px"反推步长，小屏自动变成 10 一格。 */
+  let yStep = 5;
+  while (yStep < 20 && plotH / ((yMax - yMin) / yStep) < 15) yStep += 5;
   for (let v = Math.ceil(yMin / yStep) * yStep; v <= yMax; v += yStep) {
     const y = Math.round(yOf(v)) + 0.5;
     cctx.beginPath(); cctx.moveTo(plotL, y); cctx.lineTo(plotR, y); cctx.stroke();
@@ -3100,28 +3151,29 @@ function drawChart() {
 
   /* --- 坐标刻度 --- */
   cctx.fillStyle = CH.tick;
-  cctx.font = '10px ui-monospace,Consolas,monospace';
+  cctx.font = '12px ui-monospace,Consolas,monospace';
   cctx.textAlign = 'right'; cctx.textBaseline = 'middle';
   for (let v = Math.ceil(yMin / yStep) * yStep; v <= yMax; v += yStep) {
     if (Math.abs(v) < 0.01) continue;
-    cctx.fillText(String(v), plotL - 7, yOf(v));
+    cctx.fillText(String(v), plotL - 9, yOf(v));
   }
-  cctx.fillText('0', plotL - 7, yZero);
+  cctx.fillText('0', plotL - 9, yZero);
 
+  cctx.font = '12px ui-monospace,Consolas,monospace';
   cctx.textBaseline = 'top';
   for (let i = 0; i <= 4; i++) {
     const xp = plotL + (i / 4) * plotW;
     cctx.textAlign = i === 0 ? 'left' : (i === 4 ? 'right' : 'center');
-    cctx.fillText(String(Math.round(PHYS.iMax * i / 4)), xp, plotB + 6);
+    cctx.fillText(String(Math.round(PHYS.iMax * i / 4)), xp, plotB + 8);
   }
   cctx.textAlign = 'center';
   cctx.fillStyle = CH.axisLab;
-  cctx.font = '9px "PingFang SC","Microsoft YaHei",sans-serif';
-  cctx.fillText('光照强度 μmol·m⁻²·s⁻¹', (plotL + plotR) / 2, plotB + 20);
+  cctx.font = '10.5px "PingFang SC","Microsoft YaHei",sans-serif';
+  cctx.fillText('光照强度 μmol·m⁻²·s⁻¹', (plotL + plotR) / 2, plotB + 28);
 
   cctx.textAlign = 'left'; cctx.textBaseline = 'top';
   cctx.fillStyle = CH.axisLab;
-  cctx.fillText('μmol CO₂·m⁻²·s⁻¹', plotL + 2, 3);
+  cctx.fillText('μmol CO₂·m⁻²·s⁻¹', plotL + 2, 4);
 
   /* --- 温度对照鬼影线（演示态） --- */
   if (State.mode === 'demo') {
@@ -3143,7 +3195,7 @@ function drawChart() {
       cctx.setLineDash([]);
       const vEnd = netOf(PHYS.iMax, T, State.C, State.O, State.whole);
       cctx.fillStyle = CH.ghostLab;
-      cctx.font = '9px ui-monospace,Consolas,monospace';
+      cctx.font = '11px ui-monospace,Consolas,monospace';
       cctx.textAlign = 'right'; cctx.textBaseline = 'middle';
       haloText(T + '℃', plotR - 2, yOf(vEnd) + (T > State.T ? 9 : -9));
     }
@@ -3156,9 +3208,11 @@ function drawChart() {
   cctx.rect(plotL - 2, plotT - 8, revealX - plotL + 2, plotH + 16);
   cctx.clip();
 
+  /* 采样点数：三条线共用，保证带子和描边严丝合缝 */
+  const N = 110;
+
   /* 总光合（虚线） */
   cctx.beginPath();
-  const N = 110;
   for (let i = 0; i <= N; i++) {
     const I = (i / N) * PHYS.iMax;
     const v = grossAt(I, State.T, State.C, State.O);
@@ -3191,31 +3245,38 @@ function drawChart() {
   cctx.shadowBlur = 0;
   cctx.restore();
 
-  /* --- 呼吸间距标注（在当前光强处） --- */
-  const curI = State.I;
-  const gNow = grossAt(curI, State.T, State.C, State.O);
-  const nNow = gNow - respAt(State.T, State.whole);
-  if (curI > 30) {
-    const x = xOf(curI);
-    const y1 = yOf(nNow), y2 = yOf(gNow);
-    cctx.strokeStyle = CH.resp;
-    cctx.lineWidth = 1;
-    cctx.setLineDash([3, 3]);
+  /* --- 呼吸值：一条贯穿全图的水平虚线 ---
+     全图最容易误读的地方就在这里。呼吸速率只由温度决定，与光强毫无关系，
+     所以在这张"速率—光强"图上它是一条水平线，而不是一条随光强上升的曲线。
+     以前只在当前光强处标了一段两曲线间距（一个竖线 + "呼吸"），
+     学生（和听课的老师）会把它读成"呼吸随光强在变大"。
+     画出水平线之后，"呼吸只随温度变"这件事才有参照物。
+     附带一个很好用的课堂巧合：这条线在 I 略大于 40 处穿过绿虚线，
+     而那正是光补偿点——总光合刚好追平呼吸的地方，三者同一个横坐标。 */
+  const respNow = respAt(State.T, State.whole);
+  const yResp = yOf(respNow);
+  if (yResp > plotT + 2 && yResp < plotB - 2) {
+    cctx.strokeStyle = CH.respLine;
+    cctx.lineWidth = 1.6;
+    cctx.setLineDash([5, 5]);
     cctx.beginPath();
-    cctx.moveTo(x, y1); cctx.lineTo(x, y2);
+    cctx.moveTo(plotL, yResp); cctx.lineTo(plotR, yResp);
     cctx.stroke();
     cctx.setLineDash([]);
-    cctx.beginPath();
-    cctx.moveTo(x - 3, y1); cctx.lineTo(x + 3, y1);
-    cctx.moveTo(x - 3, y2); cctx.lineTo(x + 3, y2);
-    cctx.stroke();
-    if (Math.abs(y2 - y1) > 14) {
-      cctx.fillStyle = CH.respLab;
-      cctx.font = '9px "PingFang SC",sans-serif';
-      cctx.textAlign = 'left'; cctx.textBaseline = 'middle';
-      haloText('呼吸', x + 5, (y1 + y2) / 2);
-    }
+    cctx.fillStyle = CH.respLab;
+    cctx.font = '11px "PingFang SC",sans-serif';
+    cctx.textAlign = 'right'; cctx.textBaseline = 'bottom';
+    haloText('呼吸 ' + fmt(respNow, 1) + '（只随温度变）', plotR - 4, yResp - 3);
   }
+
+  /* 工作点只留竖十字与圆点。
+     这里曾经还有一个"间距双箭头 + 呼吸"的小标注：2.1 在这根轴上只有约 11 px，
+     而圆点直径 12 px，箭头被整个吃掉；把引线挪到圆点左边之后又读成一个小方块。
+     信息已经由上面那条水平虚线（值和"只随温度变"）＋ 右栏的三量对账
+     （总光合 − 呼吸 = 净光合）两处承担，图上不再重复。 */
+  const curI = State.I;
+  const gNow = grossAt(curI, State.T, State.C, State.O);
+  const nNow = gNow - respNow;
 
   /* --- 光补偿点 --- */
   if (State.comp !== null && State.comp <= State.maxI) {
@@ -3230,7 +3291,7 @@ function drawChart() {
     cctx.arc(x, y, 7, 0, 6.2832);
     cctx.stroke();
     cctx.fillStyle = CH.negLab;
-    cctx.font = '9.5px "PingFang SC",sans-serif';
+    cctx.font = '11.5px "PingFang SC",sans-serif';
     /* 补偿点几乎都贴着左边（≈40），标签放在零点线**下方**——那里是负值区的
        空白，曲线不经过；放上方会和起步段的曲线压在一起。 */
     cctx.textAlign = 'left'; cctx.textBaseline = 'top';
@@ -3245,7 +3306,7 @@ function drawChart() {
     cctx.fillStyle = CH.sat;
     cctx.fill();
     cctx.fillStyle = CH.satLab;
-    cctx.font = '9.5px "PingFang SC",sans-serif';
+    cctx.font = '11.5px "PingFang SC",sans-serif';
     cctx.textAlign = 'center';
     const above = y > plotT + 42;
     cctx.textBaseline = above ? 'bottom' : 'top';
@@ -3279,9 +3340,9 @@ function drawChart() {
       cctx.stroke();
       if (same && REC.pts.length <= 8) {
         cctx.fillStyle = CH.note;
-        cctx.font = '8px "PingFang SC",sans-serif';
+        cctx.font = '9.5px "PingFang SC",sans-serif';
         cctx.textAlign = 'center'; cctx.textBaseline = 'bottom';
-        cctx.fillText(String(i + 1), px, py - 5);
+        cctx.fillText(String(i + 1), px, py - 6);
       }
     }
   }
@@ -3289,9 +3350,9 @@ function drawChart() {
   /* 脚注：把"点为什么不动、灰点是什么"一句话说清 */
   if (offCond) {
     cctx.fillStyle = CH.ghostLab;
-    cctx.font = '9px "PingFang SC",sans-serif';
+    cctx.font = '10px "PingFang SC",sans-serif';
     cctx.textAlign = 'right'; cctx.textBaseline = 'bottom';
-    cctx.fillText('灰点 = 其他条件测得', plotR - 2, plotT - 3);
+    cctx.fillText('灰点 = 其他条件测得', plotR - 2, plotT - 4);
   }
   if (typeof chartFootEl !== 'undefined' && chartFootEl) {
     chartFootEl.textContent = offCond
@@ -3321,17 +3382,18 @@ function drawChart() {
 
   /* --- 区域注释 --- */
   if (State.comp !== null && State.comp > 260) {
-    cctx.fillStyle = 'rgba(201,58,46,0.70)';
-    cctx.font = '9px "PingFang SC",sans-serif';
+    cctx.fillStyle = 'rgba(201,58,46,0.78)';
+    cctx.font = '10.5px "PingFang SC",sans-serif';
     cctx.textAlign = 'left'; cctx.textBaseline = 'middle';
     cctx.fillText('净光合 < 0', plotL + 6, yZero + 12);
   }
   if (State.sat !== null) {
-    cctx.fillStyle = 'rgba(14,138,92,0.72)';
-    cctx.font = '9px "PingFang SC",sans-serif';
-    cctx.textAlign = 'center'; cctx.textBaseline = 'top';
-    const sx = (xOf(State.sat) + plotR) / 2;
-    if (plotR - xOf(State.sat) > 46) haloText('加光不再增益', sx, plotT + 2);
+    cctx.fillStyle = 'rgba(14,138,92,0.85)';
+    cctx.font = '10.5px "PingFang SC",sans-serif';
+    /* 靠右上角独立成一行：这一带（25 以上、饱和点右侧）是全图唯一常年空着的区域，
+       放在曲线下方会和"呼吸"那条水平线的标签撞在一起。 */
+    cctx.textAlign = 'right'; cctx.textBaseline = 'top';
+    if (plotR - xOf(State.sat) > 60) haloText('加光不再增益', plotR - 2, plotT + 2);
   }
 }
 
@@ -3650,6 +3712,9 @@ function toggleChem() {
   if (hint) hint.textContent = open ? '收起' : '点开看';
   requestAnimationFrame(resizeChart);
   setTimeout(resizeChart, 60);
+  /* 语音层：只在"展开"时讲一次，收起不读，免得反复啰嗦。
+     80-voice.js 后加载，首屏这里拿不到它，用 typeof 兜一下。 */
+  if (open && typeof window.sayCue === 'function') window.sayCue('chem');
 }
 if (btnChem) btnChem.addEventListener('click', toggleChem);
 
@@ -3827,6 +3892,12 @@ function paintChips() {
   });
 }
 
+/* 语音讲解的"叫号"入口。80-voice.js 在最后加载，所以首屏调用时它还不存在，
+   这里统一兜一层：没有语音层就静默跳过，课件本身照常工作。 */
+function cue(key) {
+  if (typeof window.sayCue === 'function') { try { window.sayCue(key); } catch (e) { } }
+}
+
 function setQ(i, silent) {
   qIndex = clamp(i, 0, QUESTIONS.length - 1);
   const item = QUESTIONS[qIndex];
@@ -3838,6 +3909,8 @@ function setQ(i, silent) {
   QE.prev.disabled = qIndex === 0;
   QE.next.disabled = qIndex === QUESTIONS.length - 1;
   paintChips();
+  /* silent 是程序内部复位（URL 读参、开场落位），不读，否则一进页面连念两段 */
+  if (!silent) cue('q' + (qIndex + 1));
 }
 
 function stepQ(d) { setQ(qIndex + d); }
@@ -3906,6 +3979,7 @@ function recordPoint() {
   });
   renderRec();
   drawChart();
+  cue('record');
 }
 
 function clearRec() {
@@ -4008,6 +4082,270 @@ window.__lesson = {
   pure: function () { return pureOn; },
   setPure: setPure
 };
+
+/* ---- 80-voice.js ---- */
+/* =========================================================
+   80 · 语音讲解（离线）
+   ---------------------------------------------------------
+   课上真正的痛点：老师一边讲一边操作鼠标，手不够用；
+   学生自己复习时，光看文字又抓不住重点。
+   这里用浏览器**自带**的语音合成（speechSynthesis），
+   不联网、不调云服务，符合"双击即开、教室断网也能用"的前提。
+
+   设计上三条：
+   ① 默认**关**。教室突然出声很尴尬，必须老师主动点开。
+   ② 开启后"跟着操作走"：切题、记录、展开化学式，各自读对应的那段，
+      不需要老师再去点一次播放。
+   ③ 全程有字幕。一是投影时后排听不清，二是万一机器没装中文语音，
+      功能降级成字幕，课照样能上——这是必须留的后路。
+   ========================================================= */
+'use strict';
+
+(function () {
+
+  /* ---------- 讲解稿 ----------
+     语气按"老师当堂讲话"写，不是念课文：
+     短句、有停顿、每段只推进一个结论。
+     数字尽量写成口语（"两个多"），因为 TTS 念 "2.1" 常常吞掉小数点。 */
+  var SCRIPT = {
+    q1: '先别急着说光合作用。屏幕上其实是五条流：氧气往上飘，是叶片放出来的；'
+      + '二氧化碳往下沉，被叶子吸进去；水从根沿着茎往上走；有机物从叶子往下走；'
+      + '还有一条从整株往外冒的二氧化碳，那是呼吸。方向都不一样，说明这是两件事。',
+    q2: '在光合，它也在呼吸。光下它一边造有机物，一边还在烧有机物，两件事同时开，谁也不停。'
+      + '你把灯关掉，光合停了，呼吸不停。右边那个负号就是证据。',
+    q3: '不能。传感器测到的是净值，是箱子里真正少掉的那一部分。'
+      + '制造出来的总量里，有一份当场就被呼吸吃掉了，你根本看不见。要算总账，必须把被吃掉的那份加回去。',
+    q4: '光也是光合的原料，没有光，光反应停，整条链子就断了，所以总光合是零。'
+      + '但呼吸不靠光，它烧的是现成的有机物，所以照常进行，读数还是负的两个多。',
+    q5: '对应的是箱内二氧化碳在升高。因为此刻植物放出的比吸收的多，多出来的就堆在箱子里。'
+      + '负号不代表没有光合，只代表支出大于收入。',
+    q6: '因为它造得还不够多。光太弱，总光合还追不上呼吸，净值仍然是负的，箱子当然继续升。'
+      + '等光强越过补偿点，读数才会停住，然后往回走。',
+    q7: '因为两笔账正好抵平：造多少、烧多少，一样多。植物在忙，只是进出相等，'
+      + '所以传感器看不出变化。这个光强，就叫光补偿点。',
+    q8: '零线附近那一小段。曲线穿过零线的地方，读数不动。注意，不是植物停了，是两件事打平了。',
+    q9: '会移动。温度升到三十五度，呼吸按十度翻倍的规律涨上去，支出变大，'
+      + '要更多的光才追得平，所以补偿点往右移。记住一句：补偿点由呼吸决定，呼吸由温度决定。',
+    q10: '因为瓶颈换了。光已经够多，卡住它的是暗反应的速度，是酶的数量和二氧化碳的供应。'
+      + '再加光，多出来的那部分用不上，只会变成热。',
+    q11: '没有停。两条曲线之间的高度差一直存在，那个差就是呼吸。'
+      + '你把光开到最大，呼吸还是两个多，一点没变。呼吸只看温度，不看光。',
+    q12: '黑暗里总光合是零，净光合等于零减呼吸，也就是负的呼吸。'
+      + '所以黑瓶测到的那个数，直接就是呼吸速率，不用换算。',
+    q13: '白瓶测到的还是净值，光合减呼吸。黑瓶就算放在光下也没用，它照样只呼吸。'
+      + '两个一减，呼吸被抵消掉，剩下的才是总光合。',
+    q14: '没有一种方法能直接测到总光合。黑白瓶、半叶法、叶圆片上浮，测到的都是净值，'
+      + '只是有的顺带把呼吸也测了，可以相减还原。总光合永远是算出来的。',
+    q15: '低下去的是根和茎的呼吸。它们只呼吸、不光合，只花钱不挣钱，'
+      + '所以整株的净收入一定比叶片少。差的那一块，就是这部分呼吸。',
+    q16: '题干写植物，就是整株；写叶片，才是叶片。这两个数不一样，差的就是根茎呼吸。'
+      + '做题时先圈出主语，再看它问的是净光合还是总光合。',
+
+    record: '记下一组。这一点的光强和净值已经钉在曲线上了，等一下你拖到别处，它不会跟着动。'
+      + '测出来的东西，不该随条件改。',
+    chem: '这里可以把方程式摊开看。光合的还原氢写 NADPH，呼吸写 [H]，别混。'
+      + '能量那两个数字要背：两千八百七十千焦，其中一千一百六十一千焦存进了 ATP。',
+  };
+
+  /* ---------- 状态 ---------- */
+  var S = {
+    on: false,
+    ready: false,
+    voice: null,
+    rate: 0.95,
+    cur: null,
+    timer: 0
+  };
+
+  var synth = (typeof window !== 'undefined' && window.speechSynthesis) ? window.speechSynthesis : null;
+
+  /* ---------- DOM ---------- */
+  var btn = null, sub = null, subTx = null, subStop = null;
+  var curQ = function () {
+    return (typeof window.__lesson !== 'undefined' && window.__lesson.index) ? window.__lesson.index() : 0;
+  };
+
+  function buildUI() {
+    btn = document.getElementById('btnVoice');
+    sub = document.getElementById('vsub');
+    subTx = document.getElementById('vsubTx');
+    subStop = document.getElementById('vsubStop');
+    if (subStop) subStop.addEventListener('click', function () { stop(); });
+    /* 「记录此刻」「化学式」的朗读由 60/70 里的 sayCue 发出，
+       这里不再重复挂监听，否则一次点击会被读两遍。 */
+    if (btn) btn.addEventListener('click', function () {
+      if (S.on) { setOn(false); }
+      else if (!S.ready) {
+        /* 没装中文语音时不要假装能读：说出实情，然后把字幕这条路接上。
+           注意 S.on 仍然是 true —— 讲解是"开着"的，只是发声降级成字幕。 */
+        setOn(true, true);
+        setSub('本机没有可用的中文语音，讲解改用字幕：切题、记录、展开化学式时会显示对应讲解。');
+        clearTimeout(S.timer);
+        S.timer = setTimeout(function () { if (!S.cur) setSub(''); }, 6000);
+      } else {
+        setOn(true);
+      }
+    });
+  }
+
+  /* ---------- 语音选择 ---------- */
+  function pickVoice() {
+    if (!synth) return;
+    var vs;
+    try { vs = synth.getVoices() || []; } catch (e) { vs = []; }
+    if (!vs.length) return;                       /* 还没有加载完，等 voiceschanged */
+    var zh = [];
+    for (var i = 0; i < vs.length; i++) {
+      if (/^zh/i.test(vs[i].lang || '')) zh.push(vs[i]);
+    }
+    if (!zh.length) {
+      S.ready = false;
+      if (btn) {
+        btn.title = '本机未安装中文语音包；讲解将以字幕形式显示';
+      }
+      paintBtn();
+      return;
+    }
+    var pref = ['Xiaoxiao', 'Huihui', 'Yaoyao', 'Kangkang', 'Female', '女'];
+    S.voice = zh[0];
+    for (var k = 0; k < pref.length; k++) {
+      for (var j = 0; j < zh.length; j++) {
+        if ((zh[j].name || '').indexOf(pref[k]) >= 0) { S.voice = zh[j]; k = pref.length; break; }
+      }
+    }
+    S.ready = true;
+    if (btn) {
+      btn.title = '语音讲解（V）· 当前音色：' + S.voice.name;
+    }
+    paintBtn();
+  }
+  if (synth) {
+    pickVoice();
+    if (synth.addEventListener) synth.addEventListener('voiceschanged', pickVoice);
+    else synth.onvoiceschanged = pickVoice;
+    /* 有些实现首次 getVoices 为空，隔一会儿再试一次 */
+    setTimeout(pickVoice, 400);
+  }
+
+  /* ---------- 字幕 ---------- */
+  function setSub(txt) {
+    if (!sub || !subTx) return;
+    if (txt) {
+      subTx.textContent = txt;
+      sub.hidden = false;
+    } else {
+      sub.hidden = true;
+      subTx.textContent = '';
+    }
+  }
+
+  function stop() {
+    if (synth) { try { synth.cancel(); } catch (e) { } }
+    S.cur = null;
+    clearTimeout(S.timer);
+    setSub('');
+    if (btn && S.on) btn.classList.remove('speaking');
+  }
+
+  /* ---------- 朗读 ---------- */
+  function say(key) {
+    var txt = SCRIPT[key];
+    if (!txt) return;
+    /* 字幕永远给：即使语音可用，后排也要看得见 */
+    setSub(txt);
+    S.cur = key;
+    if (!S.ready || !synth) return;
+
+    try { synth.cancel(); } catch (e) { }
+    var u = new SpeechSynthesisUtterance(txt);
+    u.lang = 'zh-CN';
+    if (S.voice) u.voice = S.voice;
+    u.rate = S.rate;
+    u.pitch = 1.0;
+    u.onend = function () {
+      if (S.cur !== key) return;                 /* 已被新的朗读顶掉 */
+      setSub('');
+      S.cur = null;
+      if (btn) btn.classList.remove('speaking');
+    };
+    u.onerror = function () {
+      /* 语音报错不影响上课：字幕已经显示了 */
+      if (btn) btn.classList.remove('speaking');
+    };
+    if (btn) btn.classList.add('speaking');
+    /* 同一时刻只留一条，避免"上一句还没念完就切题"叠音 */
+    setTimeout(function () { try { synth.speak(u); } catch (e) { } }, 30);
+  }
+
+  /* 按钮文字只有一个来源，免得三处各写一套、状态对不上 */
+  function paintBtn() {
+    if (!btn) return;
+    btn.classList.toggle('on', S.on);
+    btn.textContent = S.on ? (S.ready ? '讲解中' : '讲解中（字幕）')
+                           : (S.ready ? '讲解' : '讲解（无中文语音）');
+  }
+
+  function setOn(v, silent) {
+    S.on = !!v;
+    paintBtn();
+    if (!S.on) {
+      /* 关掉时若正在读，直接掐掉；字幕也收起来 */
+      if (S.cur) stop();
+      else setSub('');
+    } else if (!silent) {
+      say('q' + (curQ() + 1));
+    }
+    try { localStorage.setItem('ps_voice_on', S.on ? '1' : '0'); } catch (e) { }
+  }
+
+  /* ---------- 把"操作"接上讲解 ----------
+     早先的做法是在 window 上包一层 setQ / recordPoint / toggleChem。
+     这个办法靠不住：60/70 里的按钮和键盘回调拿的是**局部函数引用**，
+     外层 patch 改不到它们，于是"点按钮会读、按方向键不读"。
+     现在反过来——由操作侧主动叫号（60-ui / 70-lesson 里调 window.sayCue），
+     一条路径只发一次，不会叠音，也不会漏。 */
+  window.sayCue = function (key) {
+    if (!S.on) return;
+    say(key);
+  };
+
+  /* ---------- 键位 ---------- */
+  document.addEventListener('keydown', function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var ae = document.activeElement;
+    if (ae && (ae.tagName === 'TEXTAREA' || (ae.tagName === 'INPUT' && ae.type !== 'range'))) return;
+    var k = e.key;
+    if (k === 'v' || k === 'V') {
+      if (S.on) setOn(false); else setOn(true);
+    }
+    /* 空格在本页是"复位"，所以停止用 Esc —— 上课掐掉一句读错的话要够快 */
+    else if (k === 'Escape') { if (S.cur) stop(); }
+  });
+
+  /* ---------- 启动 ---------- */
+  buildUI();
+  /* buildUI 之前 pickVoice 可能已经跑过一轮（那时 button 还没接上），
+     这里补一次重绘，把音色名和按钮文字对齐。 */
+  paintBtn();
+  if (btn && S.voice) btn.title = '语音讲解（V）· 当前音色：' + S.voice.name;
+  /* 上次开着就还开着：老师一般一节课都开着，不想每页都点一次 */
+  try {
+    if (localStorage.getItem('ps_voice_on') === '1') {
+      setTimeout(function () { setOn(true, true); }, 600);
+    }
+  } catch (e) { }
+
+  /* 暴露给验证脚本 */
+  window.__voice = {
+    on: function () { return S.on; },
+    ready: function () { return S.ready; },
+    voiceName: function () { return S.voice ? S.voice.name : ''; },
+    say: say,
+    stop: stop,
+    texts: function () { return Object.keys(SCRIPT); },
+    current: function () { return S.cur; }
+  };
+})();
 
 </script>
 </body>

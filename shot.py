@@ -58,7 +58,15 @@ PROBE = """
       }
       /* 先记一组，再把温度拨走：用来验证"异条件实测点变灰" */
       if (kv.rec === '1' && window.__lesson) window.__lesson.record();
+      if (kv.voice === '1') {
+        var bv = document.getElementById('btnVoice');
+        if (bv) bv.click();
+      }
       if (kv.after !== undefined) setTemp(parseFloat(kv.after));
+      if (kv.scroll === '1') {
+        var cbs = document.getElementById('chemBody');
+        if (cbs) cbs.scrollTop = cbs.scrollHeight;
+      }
       for (var i = 0; i < 30; i++) window.__warmFrame(0.033);
       if (typeof drawChart === 'function') drawChart();
       out.foot = document.getElementById('chartFoot').textContent;

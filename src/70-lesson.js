@@ -80,6 +80,12 @@ function paintChips() {
   });
 }
 
+/* 语音讲解的"叫号"入口。80-voice.js 在最后加载，所以首屏调用时它还不存在，
+   这里统一兜一层：没有语音层就静默跳过，课件本身照常工作。 */
+function cue(key) {
+  if (typeof window.sayCue === 'function') { try { window.sayCue(key); } catch (e) { } }
+}
+
 function setQ(i, silent) {
   qIndex = clamp(i, 0, QUESTIONS.length - 1);
   const item = QUESTIONS[qIndex];
@@ -91,6 +97,8 @@ function setQ(i, silent) {
   QE.prev.disabled = qIndex === 0;
   QE.next.disabled = qIndex === QUESTIONS.length - 1;
   paintChips();
+  /* silent 是程序内部复位（URL 读参、开场落位），不读，否则一进页面连念两段 */
+  if (!silent) cue('q' + (qIndex + 1));
 }
 
 function stepQ(d) { setQ(qIndex + d); }
@@ -159,6 +167,7 @@ function recordPoint() {
   });
   renderRec();
   drawChart();
+  cue('record');
 }
 
 function clearRec() {

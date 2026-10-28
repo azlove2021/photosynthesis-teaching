@@ -30,7 +30,8 @@ const CH = {
   net2: '#63b3ff',
   netGlow: 'rgba(63,148,232,0.30)',
   resp: 'rgba(196,116,18,0.85)',
-  respLab: '#b06a10',
+  respLine: 'rgba(196,116,18,0.62)',
+  respLab: '#a8620d',
   neg: '#d9453a',
   negLab: '#c93a2e',
   sat: 'rgba(16,150,99,0.95)',
@@ -53,7 +54,8 @@ function resizeChart() {
   if (typeof drawChart === 'function') drawChart();
 }
 
-const CP = { l: 50, r: 18, t: 24, b: 38 };
+/* 边距按"投影可读"重新配：刻度 12px、轴标题 10.5px，左边要放得下两位数字 */
+const CP = { l: 62, r: 22, t: 30, b: 48 };
 
 function netOf(I, T, C, O, whole) {
   return grossAt(I, T, C, O) - respAt(T, whole);
@@ -107,7 +109,12 @@ function drawChart() {
   /* --- 网格 --- */
   cctx.strokeStyle = CH.grid;
   cctx.lineWidth = 1;
-  const yStep = (yMax - yMin) > 40 ? 10 : 5;
+  /* 刻度密度跟着可用高度走。
+     12px 的刻度字号在 1440×900 上 5 一格正好；换到 1280×800 的投影仪，
+     画布只有百来像素高，5 一格就挤成一条黑杠（实测数字互相压住）。
+     这里按"每格至少 15px"反推步长，小屏自动变成 10 一格。 */
+  let yStep = 5;
+  while (yStep < 20 && plotH / ((yMax - yMin) / yStep) < 15) yStep += 5;
   for (let v = Math.ceil(yMin / yStep) * yStep; v <= yMax; v += yStep) {
     const y = Math.round(yOf(v)) + 0.5;
     cctx.beginPath(); cctx.moveTo(plotL, y); cctx.lineTo(plotR, y); cctx.stroke();
@@ -134,28 +141,29 @@ function drawChart() {
 
   /* --- 坐标刻度 --- */
   cctx.fillStyle = CH.tick;
-  cctx.font = '10px ui-monospace,Consolas,monospace';
+  cctx.font = '12px ui-monospace,Consolas,monospace';
   cctx.textAlign = 'right'; cctx.textBaseline = 'middle';
   for (let v = Math.ceil(yMin / yStep) * yStep; v <= yMax; v += yStep) {
     if (Math.abs(v) < 0.01) continue;
-    cctx.fillText(String(v), plotL - 7, yOf(v));
+    cctx.fillText(String(v), plotL - 9, yOf(v));
   }
-  cctx.fillText('0', plotL - 7, yZero);
+  cctx.fillText('0', plotL - 9, yZero);
 
+  cctx.font = '12px ui-monospace,Consolas,monospace';
   cctx.textBaseline = 'top';
   for (let i = 0; i <= 4; i++) {
     const xp = plotL + (i / 4) * plotW;
     cctx.textAlign = i === 0 ? 'left' : (i === 4 ? 'right' : 'center');
-    cctx.fillText(String(Math.round(PHYS.iMax * i / 4)), xp, plotB + 6);
+    cctx.fillText(String(Math.round(PHYS.iMax * i / 4)), xp, plotB + 8);
   }
   cctx.textAlign = 'center';
   cctx.fillStyle = CH.axisLab;
-  cctx.font = '9px "PingFang SC","Microsoft YaHei",sans-serif';
-  cctx.fillText('光照强度 μmol·m⁻²·s⁻¹', (plotL + plotR) / 2, plotB + 20);
+  cctx.font = '10.5px "PingFang SC","Microsoft YaHei",sans-serif';
+  cctx.fillText('光照强度 μmol·m⁻²·s⁻¹', (plotL + plotR) / 2, plotB + 28);
 
   cctx.textAlign = 'left'; cctx.textBaseline = 'top';
   cctx.fillStyle = CH.axisLab;
-  cctx.fillText('μmol CO₂·m⁻²·s⁻¹', plotL + 2, 3);
+  cctx.fillText('μmol CO₂·m⁻²·s⁻¹', plotL + 2, 4);
 
   /* --- 温度对照鬼影线（演示态） --- */
   if (State.mode === 'demo') {
@@ -177,7 +185,7 @@ function drawChart() {
       cctx.setLineDash([]);
       const vEnd = netOf(PHYS.iMax, T, State.C, State.O, State.whole);
       cctx.fillStyle = CH.ghostLab;
-      cctx.font = '9px ui-monospace,Consolas,monospace';
+      cctx.font = '11px ui-monospace,Consolas,monospace';
       cctx.textAlign = 'right'; cctx.textBaseline = 'middle';
       haloText(T + '℃', plotR - 2, yOf(vEnd) + (T > State.T ? 9 : -9));
     }
@@ -190,9 +198,11 @@ function drawChart() {
   cctx.rect(plotL - 2, plotT - 8, revealX - plotL + 2, plotH + 16);
   cctx.clip();
 
+  /* 采样点数：三条线共用，保证带子和描边严丝合缝 */
+  const N = 110;
+
   /* 总光合（虚线） */
   cctx.beginPath();
-  const N = 110;
   for (let i = 0; i <= N; i++) {
     const I = (i / N) * PHYS.iMax;
     const v = grossAt(I, State.T, State.C, State.O);
@@ -225,31 +235,38 @@ function drawChart() {
   cctx.shadowBlur = 0;
   cctx.restore();
 
-  /* --- 呼吸间距标注（在当前光强处） --- */
-  const curI = State.I;
-  const gNow = grossAt(curI, State.T, State.C, State.O);
-  const nNow = gNow - respAt(State.T, State.whole);
-  if (curI > 30) {
-    const x = xOf(curI);
-    const y1 = yOf(nNow), y2 = yOf(gNow);
-    cctx.strokeStyle = CH.resp;
-    cctx.lineWidth = 1;
-    cctx.setLineDash([3, 3]);
+  /* --- 呼吸值：一条贯穿全图的水平虚线 ---
+     全图最容易误读的地方就在这里。呼吸速率只由温度决定，与光强毫无关系，
+     所以在这张"速率—光强"图上它是一条水平线，而不是一条随光强上升的曲线。
+     以前只在当前光强处标了一段两曲线间距（一个竖线 + "呼吸"），
+     学生（和听课的老师）会把它读成"呼吸随光强在变大"。
+     画出水平线之后，"呼吸只随温度变"这件事才有参照物。
+     附带一个很好用的课堂巧合：这条线在 I 略大于 40 处穿过绿虚线，
+     而那正是光补偿点——总光合刚好追平呼吸的地方，三者同一个横坐标。 */
+  const respNow = respAt(State.T, State.whole);
+  const yResp = yOf(respNow);
+  if (yResp > plotT + 2 && yResp < plotB - 2) {
+    cctx.strokeStyle = CH.respLine;
+    cctx.lineWidth = 1.6;
+    cctx.setLineDash([5, 5]);
     cctx.beginPath();
-    cctx.moveTo(x, y1); cctx.lineTo(x, y2);
+    cctx.moveTo(plotL, yResp); cctx.lineTo(plotR, yResp);
     cctx.stroke();
     cctx.setLineDash([]);
-    cctx.beginPath();
-    cctx.moveTo(x - 3, y1); cctx.lineTo(x + 3, y1);
-    cctx.moveTo(x - 3, y2); cctx.lineTo(x + 3, y2);
-    cctx.stroke();
-    if (Math.abs(y2 - y1) > 14) {
-      cctx.fillStyle = CH.respLab;
-      cctx.font = '9px "PingFang SC",sans-serif';
-      cctx.textAlign = 'left'; cctx.textBaseline = 'middle';
-      haloText('呼吸', x + 5, (y1 + y2) / 2);
-    }
+    cctx.fillStyle = CH.respLab;
+    cctx.font = '11px "PingFang SC",sans-serif';
+    cctx.textAlign = 'right'; cctx.textBaseline = 'bottom';
+    haloText('呼吸 ' + fmt(respNow, 1) + '（只随温度变）', plotR - 4, yResp - 3);
   }
+
+  /* 工作点只留竖十字与圆点。
+     这里曾经还有一个"间距双箭头 + 呼吸"的小标注：2.1 在这根轴上只有约 11 px，
+     而圆点直径 12 px，箭头被整个吃掉；把引线挪到圆点左边之后又读成一个小方块。
+     信息已经由上面那条水平虚线（值和"只随温度变"）＋ 右栏的三量对账
+     （总光合 − 呼吸 = 净光合）两处承担，图上不再重复。 */
+  const curI = State.I;
+  const gNow = grossAt(curI, State.T, State.C, State.O);
+  const nNow = gNow - respNow;
 
   /* --- 光补偿点 --- */
   if (State.comp !== null && State.comp <= State.maxI) {
@@ -264,7 +281,7 @@ function drawChart() {
     cctx.arc(x, y, 7, 0, 6.2832);
     cctx.stroke();
     cctx.fillStyle = CH.negLab;
-    cctx.font = '9.5px "PingFang SC",sans-serif';
+    cctx.font = '11.5px "PingFang SC",sans-serif';
     /* 补偿点几乎都贴着左边（≈40），标签放在零点线**下方**——那里是负值区的
        空白，曲线不经过；放上方会和起步段的曲线压在一起。 */
     cctx.textAlign = 'left'; cctx.textBaseline = 'top';
@@ -279,7 +296,7 @@ function drawChart() {
     cctx.fillStyle = CH.sat;
     cctx.fill();
     cctx.fillStyle = CH.satLab;
-    cctx.font = '9.5px "PingFang SC",sans-serif';
+    cctx.font = '11.5px "PingFang SC",sans-serif';
     cctx.textAlign = 'center';
     const above = y > plotT + 42;
     cctx.textBaseline = above ? 'bottom' : 'top';
@@ -313,9 +330,9 @@ function drawChart() {
       cctx.stroke();
       if (same && REC.pts.length <= 8) {
         cctx.fillStyle = CH.note;
-        cctx.font = '8px "PingFang SC",sans-serif';
+        cctx.font = '9.5px "PingFang SC",sans-serif';
         cctx.textAlign = 'center'; cctx.textBaseline = 'bottom';
-        cctx.fillText(String(i + 1), px, py - 5);
+        cctx.fillText(String(i + 1), px, py - 6);
       }
     }
   }
@@ -323,9 +340,9 @@ function drawChart() {
   /* 脚注：把"点为什么不动、灰点是什么"一句话说清 */
   if (offCond) {
     cctx.fillStyle = CH.ghostLab;
-    cctx.font = '9px "PingFang SC",sans-serif';
+    cctx.font = '10px "PingFang SC",sans-serif';
     cctx.textAlign = 'right'; cctx.textBaseline = 'bottom';
-    cctx.fillText('灰点 = 其他条件测得', plotR - 2, plotT - 3);
+    cctx.fillText('灰点 = 其他条件测得', plotR - 2, plotT - 4);
   }
   if (typeof chartFootEl !== 'undefined' && chartFootEl) {
     chartFootEl.textContent = offCond
@@ -355,16 +372,17 @@ function drawChart() {
 
   /* --- 区域注释 --- */
   if (State.comp !== null && State.comp > 260) {
-    cctx.fillStyle = 'rgba(201,58,46,0.70)';
-    cctx.font = '9px "PingFang SC",sans-serif';
+    cctx.fillStyle = 'rgba(201,58,46,0.78)';
+    cctx.font = '10.5px "PingFang SC",sans-serif';
     cctx.textAlign = 'left'; cctx.textBaseline = 'middle';
     cctx.fillText('净光合 < 0', plotL + 6, yZero + 12);
   }
   if (State.sat !== null) {
-    cctx.fillStyle = 'rgba(14,138,92,0.72)';
-    cctx.font = '9px "PingFang SC",sans-serif';
-    cctx.textAlign = 'center'; cctx.textBaseline = 'top';
-    const sx = (xOf(State.sat) + plotR) / 2;
-    if (plotR - xOf(State.sat) > 46) haloText('加光不再增益', sx, plotT + 2);
+    cctx.fillStyle = 'rgba(14,138,92,0.85)';
+    cctx.font = '10.5px "PingFang SC",sans-serif';
+    /* 靠右上角独立成一行：这一带（25 以上、饱和点右侧）是全图唯一常年空着的区域，
+       放在曲线下方会和"呼吸"那条水平线的标签撞在一起。 */
+    cctx.textAlign = 'right'; cctx.textBaseline = 'top';
+    if (plotR - xOf(State.sat) > 60) haloText('加光不再增益', plotR - 2, plotT + 2);
   }
 }

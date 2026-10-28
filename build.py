@@ -8,7 +8,7 @@ OUT = os.path.join(ROOT, 'photosynthesis-teaching.html')
 
 JS_FILES = ['00-model.js', '10-scene.js', '15-post.js', '20-plant.js',
             '30-particles.js', '40-chamber.js', '42-lamp.js', '50-curve.js',
-            '60-ui.js', '70-lesson.js']
+            '60-ui.js', '70-lesson.js', '80-voice.js']
 
 def read(p):
     # newline='' 保留源文件原始换行，再统一归一化。

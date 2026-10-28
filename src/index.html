@@ -21,6 +21,7 @@
         <button data-mode="demo" class="on">演示态</button>
         <button data-mode="lab">探究态</button>
       </div>
+      <button class="ghost-btn" id="btnVoice" title="语音讲解（V）：开启后切题、记录、展开化学式都会自动朗读">讲解</button>
       <button class="ghost-btn" id="btnReset" title="回到教材标准状态（空格）">重置</button>
       <button class="ghost-btn" id="btnPure" title="隐藏所有面板，只留植株（H）">纯净</button>
       <button class="ghost-btn" id="btnFull" title="全屏（F）">全屏</button>
@@ -72,6 +73,13 @@
       </div>
 
       <div class="stage-hint">拖动旋转 &nbsp;·&nbsp; 滚轮缩放 &nbsp;·&nbsp; 双击复位视角</div>
+
+      <!-- 语音字幕：投影时后排听不清也要看得见；本机没装中文语音时它就是唯一出口 -->
+      <div class="vsub" id="vsub" hidden>
+        <span class="vsub-dot"></span>
+        <span class="vsub-tx" id="vsubTx"></span>
+        <button class="vsub-x" id="vsubStop" title="停止朗读（Esc）">停止</button>
+      </div>
     </section>
 
     <aside class="side">
@@ -304,6 +312,7 @@
       <li><b>↑ ↓</b>：调光强，按住 Shift 走大步。投影时不用去够滑杆。</li>
       <li><b>R</b>：记录此刻的读数，实测点会标到曲线上。</li>
       <li><b>C</b>：展开 / 收起「化学式与能量流」（光合与呼吸的方程式、三阶段、2870 kJ 与 1161 kJ）。</li>
+      <li><b>V</b>：开 / 关语音讲解。开启后，切题、记录、展开化学式都会自动朗读对应的一小段；<b>Esc</b> 立即停。</li>
       <li><b>H</b>：纯净模式，隐藏全部面板只留植株；再按一次恢复。</li>
       <li><b>F</b>：全屏。<b>空格</b>：回到教材标准状态（800、25 ℃、400 ppm、21% O₂）。</li>
       <li><b>拖动 / 滚轮 / 双击</b>：旋转 / 缩放 / 回到初始视角。</li>

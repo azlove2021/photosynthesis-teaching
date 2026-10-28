@@ -312,6 +312,9 @@ function toggleChem() {
   if (hint) hint.textContent = open ? '收起' : '点开看';
   requestAnimationFrame(resizeChart);
   setTimeout(resizeChart, 60);
+  /* 语音层：只在"展开"时讲一次，收起不读，免得反复啰嗦。
+     80-voice.js 后加载，首屏这里拿不到它，用 typeof 兜一下。 */
+  if (open && typeof window.sayCue === 'function') window.sayCue('chem');
 }
 if (btnChem) btnChem.addEventListener('click', toggleChem);
 
