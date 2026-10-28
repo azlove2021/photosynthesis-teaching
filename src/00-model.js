@@ -108,6 +108,10 @@ const State = {
 
 const DEFAULT_STATE = { I: 800, T: 25, C: 400, O: 21, whole: true };
 
+/* 实验记录：学生手动存下的实测点。曲线靠它才有「测得」的分量，
+   而不只是程序算出来的函数图像。绘制在 50-curve.js，写入在 70-lesson.js。 */
+const REC = { pts: [], max: 12 };
+
 function recompute() {
   State.rates = ratesAt(State);
   State.comp = compPoint(State.T, State.C, State.O, State.whole);

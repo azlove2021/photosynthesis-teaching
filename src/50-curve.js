@@ -231,6 +231,31 @@ function drawChart() {
     cctx.fillText('光饱和点', x, above ? y - 7 : y + 8);
   }
 
+  /* --- 实测点：学生自己记下来的数据 ---
+     空心圆 + 序号，和工作点（实心）区分开。
+     曲线上有实测点，"这条线是怎么来的"才讲得通。 */
+  if (REC.pts.length) {
+    for (let i = 0; i < REC.pts.length; i++) {
+      const p = REC.pts[i];
+      const px = xOf(p.I), py = yOf(p.net);
+      cctx.beginPath();
+      cctx.arc(px, py, 4.0, 0, 6.2832);
+      cctx.fillStyle = 'rgba(6,16,26,0.9)';
+      cctx.fill();
+      cctx.beginPath();
+      cctx.arc(px, py, 4.0, 0, 6.2832);
+      cctx.strokeStyle = p.net >= 0 ? '#7eb6ff' : '#ff7a6b';
+      cctx.lineWidth = 1.7;
+      cctx.stroke();
+      if (REC.pts.length <= 8) {
+        cctx.fillStyle = 'rgba(147,173,166,0.85)';
+        cctx.font = '8px "PingFang SC",sans-serif';
+        cctx.textAlign = 'center'; cctx.textBaseline = 'bottom';
+        cctx.fillText(String(i + 1), px, py - 5);
+      }
+    }
+  }
+
   /* --- 当前工作点 --- */
   const cx = xOf(curI), cy = yOf(nNow);
   cctx.beginPath();

@@ -22,6 +22,8 @@
         <button data-mode="lab">探究态</button>
       </div>
       <button class="ghost-btn" id="btnReset" title="回到教材标准状态（空格）">重置</button>
+      <button class="ghost-btn" id="btnPure" title="隐藏所有面板，只留植株（H）">纯净</button>
+      <button class="ghost-btn" id="btnFull" title="全屏（F）">全屏</button>
       <button class="ghost-btn" id="btnHelp" title="操作说明">?</button>
     </div>
   </header>
@@ -91,6 +93,17 @@
           <span class="p-sub" id="chartSub">实线 净光合 &nbsp; 虚线 总光合</span>
         </div>
         <canvas id="chart"></canvas>
+        <div class="recstrip">
+          <div class="rec-head">
+            <span class="rec-title">实验记录</span>
+            <span class="rec-count" id="recCount">0 组</span>
+            <button class="rec-btn" id="btnRecord" title="记录此刻的读数（R）">记录此刻</button>
+            <button class="rec-btn ghost" id="btnRecClear" title="清空记录">清空</button>
+          </div>
+          <div class="rec-body" id="recBody">
+            <div class="rec-empty">拖到一个光强，点「记录此刻」存一组数据。<br>实测点会标在曲线上——曲线不是画出来的，是测出来的。</div>
+          </div>
+        </div>
         <div class="chart-foot" id="chartFoot">曲线随拖动逐步生成</div>
       </div>
 
@@ -161,9 +174,27 @@
     </div>
   </section>
 
-  <section class="narration" id="narration">
-    <div class="nr-tag" id="nrTag">当前状态</div>
-    <div class="nr-text" id="nrText">拖动下方光强滑杆，观察这株植物体内三条流量的变化。</div>
+  <section class="lessonbar" id="lessonbar">
+    <div class="lb-nav">
+      <button class="lb-btn" id="qPrev" title="上一题（←）">‹</button>
+      <div class="lb-stage" id="qStage">环节一</div>
+      <button class="lb-btn" id="qNext" title="下一题（→）">›</button>
+    </div>
+    <div class="lb-mid">
+      <div class="lb-q">
+        <span class="lb-qno" id="qNo">Q1 / 16</span>
+        <span class="lb-qtext" id="qText">拖动下方光强滑杆，观察这株植物体内三条流量的变化。</span>
+      </div>
+      <div class="lb-state">
+        <span class="nr-tag" id="nrTag">当前状态</span>
+        <span class="lb-state-tx" id="nrText">拖动下方光强滑杆，观察这株植物体内三条流量的变化。</span>
+      </div>
+    </div>
+    <div class="lb-chips" id="deriveChips">
+      <span class="chip" data-step="1">① 净光合 可直接测</span>
+      <span class="chip" data-step="2">② 呼吸 由黑暗态测得</span>
+      <span class="chip" data-step="3">③ 总光合 = 净 + 呼吸</span>
+    </div>
   </section>
 
 </div>
@@ -172,11 +203,13 @@
   <div class="help-box">
     <h3>怎么用这个页面</h3>
     <ul>
-      <li><b>拖动光强</b>：植物、粒子、曲线、箱内读数会同时响应。曲线随你拖过的最大光强逐步长出来。</li>
-      <li><b>快捷位置</b>：一键跳到「黑暗 / 弱光 / 光补偿点 / 光饱和」，上课时不用慢慢找。</li>
-      <li><b>看不清植物内部</b>：拖动旋转、滚轮缩放，双击回到初始视角。</li>
-      <li><b>演示态 / 探究态</b>：演示态只留光强与温度三档；探究态开放四个变量，并给出任务卡。</li>
-      <li><b>空格键</b>：任何时候回到教材标准状态（800 μmol、25 ℃、400 ppm、21% O₂）。</li>
+      <li><b>← →</b>：切换问题串（Q1–Q16，和讲义逐题对应）。上课就按方向键往下讲。</li>
+      <li><b>↑ ↓</b>：调光强，按住 Shift 走大步。投影时不用去够滑杆。</li>
+      <li><b>R</b>：记录此刻的读数，实测点会标到曲线上。</li>
+      <li><b>H</b>：纯净模式，隐藏全部面板只留植株；再按一次恢复。</li>
+      <li><b>F</b>：全屏。<b>空格</b>：回到教材标准状态（800、25 ℃、400 ppm、21% O₂）。</li>
+      <li><b>拖动 / 滚轮 / 双击</b>：旋转 / 缩放 / 回到初始视角。</li>
+      <li><b>演示态 / 探究态</b>：演示态只留光强与温度三档；探究态开放四个变量并给出任务卡。</li>
     </ul>
     <button id="helpClose">知道了</button>
   </div>
