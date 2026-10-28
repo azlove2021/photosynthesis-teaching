@@ -14,7 +14,10 @@ world.add(chamberGroup);
   const glass = new THREE.MeshPhysicalMaterial({
     color: 0xdcecfa,
     transparent: true,
-    opacity: 0.062,
+    /* 0.062 → 0.034。BackSide 的盒子会同时画出底面、后面、侧面三层背面，
+       三层各 6.2% 白叠起来接近两成，箱内整天蒙着一层雾，叶片的层次全糊了。
+       玻璃的存在感本来应该由菲涅尔冷边（下面的 rimGlass）承担，不是靠白幕。 */
+    opacity: 0.034,
     roughness: 0.04,
     metalness: 0,
     side: THREE.BackSide,
@@ -88,16 +91,61 @@ world.add(chamberGroup);
     chamberGroup.add(post);
   });
 
-  /* 顶盖 */
+  /* 顶盖 —— 必须是一块**不受光**的玻璃。
+     灯管就在盖板上方 0.35 m，聚光灯打下来时盖板整片越过中性曲线的肩部
+     （0.855 以上），在画面上烧出一个椭圆白斑，看着像箱盖破了个洞。
+     玻璃本来就不该"被照白"，它该是透的：所以换成不受光材质，
+     存在感交给金属压框和菲涅尔冷边。注意**不要**给它开投影——
+     盖板是玻璃，开了投影整片箱内会直接黑掉，那是把对的改错。 */
   const lid = new THREE.Mesh(
-    new THREE.BoxGeometry(CHAMBER.w + 0.07, 0.035, CHAMBER.d + 0.07),
-    new THREE.MeshStandardMaterial({
-      color: 0xc9dcee, roughness: 0.2, metalness: 0.3,
-      transparent: true, opacity: 0.42
+    new THREE.BoxGeometry(CHAMBER.w + 0.07, 0.016, CHAMBER.d + 0.07),
+    new THREE.MeshBasicMaterial({
+      /* 用一张渐变贴图代替单纯的半透明：均匀的 22% 白在浅底上等于没有，
+         整块盖板直接消失，箱子看着像没盖。玻璃的读法来自"边缘厚、中间薄"
+         的那点色差，所以这里做一条前后方向的渐变，再叠一道斜向高光。 */
+      map: (function () {
+        const S = 256, c = document.createElement('canvas');
+        c.width = c.height = S;
+        const g = c.getContext('2d');
+        const lg = g.createLinearGradient(0, 0, 0, S);
+        lg.addColorStop(0.00, 'rgba(186,214,240,0.66)');
+        lg.addColorStop(0.22, 'rgba(214,232,248,0.34)');
+        lg.addColorStop(0.55, 'rgba(238,247,255,0.20)');
+        lg.addColorStop(1.00, 'rgba(199,224,246,0.52)');
+        g.fillStyle = lg; g.fillRect(0, 0, S, S);
+        const rg = g.createLinearGradient(0, S * 0.30, S, S * 0.05);
+        rg.addColorStop(0.00, 'rgba(255,255,255,0)');
+        rg.addColorStop(0.46, 'rgba(255,255,255,0.34)');
+        rg.addColorStop(0.56, 'rgba(255,255,255,0.34)');
+        rg.addColorStop(1.00, 'rgba(255,255,255,0)');
+        g.fillStyle = rg; g.fillRect(0, 0, S, S);
+        const tx = new THREE.CanvasTexture(c);
+        tx.encoding = THREE.sRGBEncoding;
+        return tx;
+      })(),
+      transparent: true, opacity: 1, depthWrite: false
     })
   );
-  lid.position.y = CHAMBER.h + 0.017;
+  lid.position.y = CHAMBER.h + 0.008;
+  lid.renderOrder = 7;
   chamberGroup.add(lid);
+
+  /* 金属压框：盖板失去受光之后，边缘必须有个硬东西把它"框住"，
+     否则那块玻璃在浅底上会散成一片雾。metalness 压到 0.35——本场景没有
+     envMap，金属度一高就只剩一片黑边。 */
+  const frameMat = new THREE.MeshStandardMaterial({
+    color: 0xa9bccd, roughness: 0.34, metalness: 0.35
+  });
+  const fW = CHAMBER.w + 0.07, fD = CHAMBER.d + 0.07;
+  const fy = CHAMBER.h + 0.020, fw = 0.030;
+  [-1, 1].forEach(function (s) {
+    const bx = new THREE.Mesh(new THREE.BoxGeometry(fW, fw, fw), frameMat);
+    bx.position.set(0, fy, s * (fD / 2 - fw / 2));
+    chamberGroup.add(bx);
+    const bz = new THREE.Mesh(new THREE.BoxGeometry(fw, fw, fD - fw * 2), frameMat);
+    bz.position.set(s * (fW / 2 - fw / 2), fy, 0);
+    chamberGroup.add(bz);
+  });
 })();
 
 /* --- 传感器探头（贴壁安装，探杆指向箱内） --- */

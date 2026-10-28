@@ -136,19 +136,25 @@ function recordPoint() {
     RECE.count.textContent = REC.max + ' 组（已满）';
     return;
   }
-  /* 同一光强附近不重复记，免得表格被连点灌满 */
+  /* 同一光强、同一套条件附近不重复记，免得表格被连点灌满 */
   for (let i = 0; i < REC.pts.length; i++) {
-    if (Math.abs(REC.pts[i].I - State.I) < 12 && REC.pts[i].T === State.T) {
+    const q = REC.pts[i];
+    if (Math.abs(q.I - State.I) < 12 && q.T === State.T &&
+        q.C === State.C && q.O === State.O && q.whole === State.whole) {
       RECE.count.textContent = REC.pts.length + ' 组 · 该点已记';
       return;
     }
   }
+  /* C / O 也要一起存：它们一变，曲线整条都在动，
+     只记 T 和口径会让"同条件"的判断出错。 */
   REC.pts.push({
     I: Math.round(State.I),
     net: State.rates.net,
     gross: State.rates.gross,
     resp: State.rates.resp,
     T: State.T,
+    C: State.C,
+    O: State.O,
     whole: State.whole
   });
   renderRec();
@@ -216,6 +222,7 @@ document.addEventListener('keydown', function (e) {
     e.preventDefault(); if (onRange) ae.blur();
     setLight(State.I - (e.shiftKey ? 150 : 25));
   } else if (k === 'r' || k === 'R') { recordPoint(); }
+  else if (k === 'c' || k === 'C') { if (typeof toggleChem === 'function') toggleChem(); }
   else if (k === 'h' || k === 'H') { togglePure(); }
   else if (k === 'f' || k === 'F') { toggleFull(); }
 });

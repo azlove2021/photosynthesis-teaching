@@ -95,6 +95,7 @@
           </div>
         </div>
         <div class="unit-line">单位：μmol CO₂ · m⁻² · s⁻¹</div>
+        <div class="split-line" id="vRespSub">其中根茎呼吸 0.5（只呼吸、不光合）</div>
         <div class="bipolar">
           <div class="bp-track"><div class="bp-zero"></div><div class="bp-fill" id="bpFill"></div></div>
           <div class="bp-lab"><span>净 &lt; 0</span><span class="bp-zero-lab">0</span><span>净 &gt; 0</span></div>
@@ -127,6 +128,87 @@
         <div class="tasklist" id="taskList"></div>
       </div>
 
+      <!-- 化学式抽屉：默认折叠，展开后内部滚动。
+           口径按人教版 2019 必修 1：光合的还原氢写 NADPH（旧教材作 [H]），
+           呼吸统一写 [H]；能量只给 2870 / 1161 两个数字，不写 ATP 个数。 -->
+      <div class="panel chemp" id="chemPanel">
+        <button class="chem-head" id="btnChem" aria-expanded="false" aria-controls="chemBody">
+          <span class="chem-t">化学式与能量流</span>
+          <span class="p-sub" id="chemHint">点开看</span>
+        </button>
+        <div class="chem-body" id="chemBody" hidden>
+
+          <div class="cg">
+            <div class="cg-h">一 · 光合作用总反应</div>
+            <div class="fml">6CO<sub>2</sub> + 6H<sub>2</sub>O
+              <span class="arw">光能·叶绿体</span>
+              C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> + 6O<sub>2</sub></div>
+            <div class="cnote">把水写全的式子：6CO<sub>2</sub> + 12H<sub>2</sub>O →
+              C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> + 6O<sub>2</sub> + 6H<sub>2</sub>O。
+              它说明 <b>O₂ 里的氧全部来自水</b>，葡萄糖里的氧来自 CO<sub>2</sub>。</div>
+          </div>
+
+          <div class="cg">
+            <div class="cg-h">二 · 光合的两个阶段</div>
+            <div class="csub">光反应 · 类囊体薄膜上</div>
+            <div class="fml">H<sub>2</sub>O <span class="arw">光能、色素</span>
+              NADPH（即 [H]） + O<sub>2</sub></div>
+            <div class="fml">ADP + Pi <span class="arw">光能</span> ATP</div>
+            <div class="csub">暗反应 · 叶绿体基质中</div>
+            <div class="fml">CO<sub>2</sub> + C<sub>5</sub> <span class="arw">酶</span> 2C<sub>3</sub></div>
+            <div class="fml">2C<sub>3</sub> + NADPH + ATP <span class="arw">酶</span>
+              (CH<sub>2</sub>O) + C<sub>5</sub></div>
+            <div class="cnote">光反应把 <b>NADPH 和 ATP</b> 交给暗反应；暗反应把 ADP、Pi 和
+              NADP<sup>+</sup> 还回去。所以"暗反应不直接需要光"不等于"没有光也能长久进行"——
+              停了光反应，它很快就没原料了。</div>
+          </div>
+
+          <div class="cg">
+            <div class="cg-h">三 · 有氧呼吸三个阶段（还原氢写作 [H]）</div>
+            <div class="csub">① 细胞质基质</div>
+            <div class="fml">C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> <span class="arw">酶</span>
+              2 丙酮酸 + 4[H] + 少量能量</div>
+            <div class="csub">② 线粒体基质</div>
+            <div class="fml">2 丙酮酸 + 6H<sub>2</sub>O <span class="arw">酶</span>
+              6CO<sub>2</sub> + 20[H] + 少量能量</div>
+            <div class="csub">③ 线粒体内膜</div>
+            <div class="fml">24[H] + 6O<sub>2</sub> <span class="arw">酶</span>
+              12H<sub>2</sub>O + 大量能量</div>
+            <div class="fml sum">C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> + 6O<sub>2</sub> + 6H<sub>2</sub>O
+              <span class="arw">酶</span> 6CO<sub>2</sub> + 12H<sub>2</sub>O + 能量</div>
+            <div class="cnote">只有<b>第三阶段</b>消耗 O<sub>2</sub>。O<sub>2</sub> 的作用是接受 [H] 生成水，
+              不是直接去和葡萄糖反应。CO<sub>2</sub> 只在第二阶段产生。</div>
+          </div>
+
+          <div class="cg">
+            <div class="cg-h">四 · 能量去哪了</div>
+            <div class="fml">1 mol 葡萄糖彻底氧化分解 → 释放 <b>2870 kJ</b></div>
+            <div class="cnote">其中 <b>1161 kJ 储存在 ATP 中</b>，其余以热能散失。
+              教材不要求记 ATP 的个数，只要求记住这两个数字和"大部分以热能形式散失"。</div>
+          </div>
+
+          <div class="cg">
+            <div class="cg-h">五 · 无氧呼吸（作对照）</div>
+            <div class="fml">C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> <span class="arw">酶</span>
+              2C<sub>3</sub>H<sub>6</sub>O<sub>3</sub>（乳酸） + 少量能量</div>
+            <div class="fml">C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> <span class="arw">酶</span>
+              2C<sub>2</sub>H<sub>5</sub>OH + 2CO<sub>2</sub> + 少量能量</div>
+            <div class="cnote">无氧呼吸只在<b>第一阶段</b>产生少量 ATP，有机物分解不彻底。</div>
+          </div>
+
+          <div class="cg last">
+            <div class="cg-h">六 · 和本页模型的关系</div>
+            <div class="cnote">
+              · 本模型只算<b>有氧呼吸</b>，不计无氧呼吸；ATP 只作过程示意，不标个数。<br>
+              · 光合与呼吸<b>同时进行、互不停歇</b>。曲线上的"净光合"只是两者相减的净结果：
+              <b>净积累 / 净消耗 / 恰好抵消</b>，不是"一个开、一个关"。<br>
+              · 光强为 0 时总光合为 0、呼吸不为 0；这与"光合一停呼吸就停"是两件事。
+            </div>
+          </div>
+
+        </div>
+      </div>
+
     </aside>
   </main>
 
@@ -139,7 +221,7 @@
       </div>
     </div>
 
-    <div class="ctl" id="ctlTemp">
+    <div class="ctl ctl-temp" id="ctlTemp">
       <div class="ctl-top"><label>温度</label></div>
       <div class="ctl-body" id="tempWrap">
         <input type="range" id="sldTemp" min="10" max="40" step="1" value="25">
@@ -221,6 +303,7 @@
       <li><b>← →</b>：切换问题串（Q1–Q16，和讲义逐题对应）。上课就按方向键往下讲。</li>
       <li><b>↑ ↓</b>：调光强，按住 Shift 走大步。投影时不用去够滑杆。</li>
       <li><b>R</b>：记录此刻的读数，实测点会标到曲线上。</li>
+      <li><b>C</b>：展开 / 收起「化学式与能量流」（光合与呼吸的方程式、三阶段、2870 kJ 与 1161 kJ）。</li>
       <li><b>H</b>：纯净模式，隐藏全部面板只留植株；再按一次恢复。</li>
       <li><b>F</b>：全屏。<b>空格</b>：回到教材标准状态（800、25 ℃、400 ppm、21% O₂）。</li>
       <li><b>拖动 / 滚轮 / 双击</b>：旋转 / 缩放 / 回到初始视角。</li>

@@ -29,11 +29,40 @@ PROBE = """
     out.lost = lostFlag;
     try {
       if (kv.I !== undefined) setLight(parseFloat(kv.I));
+      if (kv.T !== undefined) setTemp(parseFloat(kv.T));
+      if (kv.whole !== undefined) setWhole(kv.whole === '1');
       Orbit.autoIdle = -1e9;
       Orbit.az = Orbit.taz = 0.34;
       Orbit.pol = Orbit.tpol = 1.255;
       Orbit.dist = Orbit.tdist = 7.30;
+      /* 纵轴必须与"整株 / 只叶片"解耦：切口径时轴不能动 */
+      var axW = chartRanges();
+      setWhole(false);
+      var axL = chartRanges();
+      if (kv.whole !== '0') setWhole(true);
+      out.axisWhole = [axW.yMin, axW.yMax];
+      out.axisLeaf = [axL.yMin, axL.yMax];
+      out.axisLocked = (axW.yMin === axL.yMin && axW.yMax === axL.yMax);
+      if (kv.chem === '1' && typeof toggleChem === 'function') {
+        toggleChem();
+        if (typeof resizeChart === 'function') resizeChart();
+      }
+      out.chemOpen = !document.getElementById('chemBody').hidden;
+      if (out.chemOpen) {
+        var cb = document.getElementById('chemBody');
+        var rr = cb.getBoundingClientRect();
+        out.chemRect = [Math.round(rr.left), Math.round(rr.top),
+                        Math.round(rr.width), Math.round(rr.height)];
+        out.chemScroll = [cb.scrollHeight, cb.clientHeight];
+        out.chemMaxH = getComputedStyle(cb).maxHeight;
+      }
+      /* 先记一组，再把温度拨走：用来验证"异条件实测点变灰" */
+      if (kv.rec === '1' && window.__lesson) window.__lesson.record();
+      if (kv.after !== undefined) setTemp(parseFloat(kv.after));
       for (var i = 0; i < 30; i++) window.__warmFrame(0.033);
+      if (typeof drawChart === 'function') drawChart();
+      out.foot = document.getElementById('chartFoot').textContent;
+      out.recN = window.__lesson ? window.__lesson.recordCount() : -1;
 
       var r = glCanvas.getBoundingClientRect();
       function proj(v) {
@@ -149,7 +178,9 @@ def analyse(png, probe, tag):
 def main():
     page = build_probe()
     specs = sys.argv[1:] or ['800']
-    w, h, budget = 1440, 900, 3200
+    w = int(os.environ.get('SHOT_W', '1440'))
+    h = int(os.environ.get('SHOT_H', '900'))
+    budget = 3200
     for spec in specs:
         if ':' in spec:
             tag, q = spec.split(':', 1)
@@ -161,6 +192,14 @@ def main():
             continue
         d = analyse(png, probe, tag)
         print('== %-8s %s  %s' % (tag, d['size'], probe and {k: probe[k] for k in ('I', 'key', 'hemi', 'gl', 'dpr', 'lost', 'err')}))
+        if probe and 'axisLocked' in probe:
+            print('   axis whole=%s leaf=%s locked=%s chemOpen=%s' %
+                  (probe['axisWhole'], probe['axisLeaf'], probe['axisLocked'], probe.get('chemOpen')))
+        if probe and 'chemRect' in probe:
+            print('   chem rect=%s scroll/client=%s maxH=%s' %
+                  (probe['chemRect'], probe['chemScroll'], probe.get('chemMaxH')))
+        if probe and 'foot' in probe:
+            print('   rec=%s foot=%s' % (probe.get('recN'), probe['foot']))
         if probe and 'x' in probe:
             print('   ERR', probe['x'])
         keys = ['lampHoodTop', 'lampTube', 'hoodInner', 'gFront', 'gRight',

@@ -9,6 +9,8 @@
 
 const chartCanvas = document.getElementById('chart');
 const cctx = chartCanvas.getContext('2d');
+/* 图下那行小字：由 drawChart 按"有没有跨条件的实测点"改写 */
+const chartFootEl = document.getElementById('chartFoot');
 let chartW = 300, chartH = 200, chartDPR = 1;
 
 /* 语义色：净光合=蓝，总光合=绿，呼吸=橙，负值=红。
@@ -34,6 +36,7 @@ const CH = {
   sat: 'rgba(16,150,99,0.95)',
   satLab: '#0e8a5c',
   dotFill: 'rgba(255,255,255,0.95)',
+  offDot: 'rgba(126,145,163,0.58)',
   cross: 'rgba(22,34,46,0.16)',
   note: '#8398a9'
 };
@@ -56,16 +59,34 @@ function netOf(I, T, C, O, whole) {
   return grossAt(I, T, C, O) - respAt(T, whole);
 }
 
+/* 纵轴的取值原则：**轴是尺子，不跟口径走**。
+   曾经的写法把 max over 温度 的呼吸按当前口径取值，于是"整株 → 只看叶片"
+   时纵轴下界从 −8 收到 −6、跨度从 38 收到 36：曲线在 I=800 处实际位移
+   0 像素，零线却下移 8.8 像素，学生看到的是"净光合变高了"——一个纯由
+   坐标轴制造的假象。真实差值只有 0.47（整株 2.15 − 叶片 1.68）。
+   所以这里恒按整株取呼吸，让轴只随**温度、CO₂、O₂**这些真正的实验条件变；
+   口径切换时整条曲线平移，幅度就是那 0.47，读数区另有分解说明。 */
 function chartRanges() {
   let pmax = 1, rd = 1;
   const temps = [15, 25, 35, State.T];
   for (let i = 0; i < temps.length; i++) {
     pmax = Math.max(pmax, pmaxAt(temps[i], State.C, State.O));
-    rd = Math.max(rd, respAt(temps[i], State.whole));
+    rd = Math.max(rd, respAt(temps[i], true));
   }
   const yMax = Math.ceil(pmax * 1.10 / 5) * 5;
   const yMin = -Math.ceil(Math.max(rd * 1.55, 3.6) / 2) * 2;
   return { yMax: yMax, yMin: yMin };
+}
+
+/* 画布上的文字一律先描一圈白边再填字。
+   曲线、鬼影线、网格都会从标签底下穿过去，浅底上不加白边就糊成一团——
+   "光补偿点"尤其明显，它正好落在曲线起步的位置。 */
+function haloText(txt, x, y) {
+  cctx.lineJoin = 'round';
+  cctx.lineWidth = 3.2;
+  cctx.strokeStyle = 'rgba(255,255,255,0.94)';
+  cctx.strokeText(txt, x, y);
+  cctx.fillText(txt, x, y);
 }
 
 function drawChart() {
@@ -158,7 +179,7 @@ function drawChart() {
       cctx.fillStyle = CH.ghostLab;
       cctx.font = '9px ui-monospace,Consolas,monospace';
       cctx.textAlign = 'right'; cctx.textBaseline = 'middle';
-      cctx.fillText(T + '℃', plotR - 2, yOf(vEnd) + (T > State.T ? 9 : -9));
+      haloText(T + '℃', plotR - 2, yOf(vEnd) + (T > State.T ? 9 : -9));
     }
   }
 
@@ -226,7 +247,7 @@ function drawChart() {
       cctx.fillStyle = CH.respLab;
       cctx.font = '9px "PingFang SC",sans-serif';
       cctx.textAlign = 'left'; cctx.textBaseline = 'middle';
-      cctx.fillText('呼吸', x + 5, (y1 + y2) / 2);
+      haloText('呼吸', x + 5, (y1 + y2) / 2);
     }
   }
 
@@ -244,8 +265,10 @@ function drawChart() {
     cctx.stroke();
     cctx.fillStyle = CH.negLab;
     cctx.font = '9.5px "PingFang SC",sans-serif';
-    cctx.textAlign = 'left'; cctx.textBaseline = 'bottom';
-    cctx.fillText('光补偿点', Math.min(x + 9, plotR - 44), y - 5);
+    /* 补偿点几乎都贴着左边（≈40），标签放在零点线**下方**——那里是负值区的
+       空白，曲线不经过；放上方会和起步段的曲线压在一起。 */
+    cctx.textAlign = 'left'; cctx.textBaseline = 'top';
+    haloText('光补偿点', Math.min(x + 9, plotR - 46), y + 6);
   }
 
   /* --- 光饱和点 --- */
@@ -260,32 +283,54 @@ function drawChart() {
     cctx.textAlign = 'center';
     const above = y > plotT + 42;
     cctx.textBaseline = above ? 'bottom' : 'top';
-    cctx.fillText('光饱和点', x, above ? y - 7 : y + 8);
+    haloText('光饱和点', x, above ? y - 7 : y + 8);
   }
 
   /* --- 实测点：学生自己记下来的数据 ---
      空心圆 + 序号，和工作点（实心）区分开。
-     曲线上有实测点，"这条线是怎么来的"才讲得通。 */
+     曲线上有实测点，"这条线是怎么来的"才讲得通。
+
+     每个点都停在**它被测出来的那个高度**上（p.net），不按当前条件重画——
+     重画就等于伪造了一次测量。条件对不上的点变灰、不编号，老老实实待在
+     原位；它反而成了"这条曲线是随温度、随 CO₂ 动的"最直接的证据。 */
+  let offCond = 0;
   if (REC.pts.length) {
     for (let i = 0; i < REC.pts.length; i++) {
       const p = REC.pts[i];
+      const same = p.whole === State.whole &&
+        Math.abs(p.T - State.T) < 0.01 &&
+        p.C === State.C && p.O === State.O;
+      if (!same) offCond++;
       const px = xOf(p.I), py = yOf(p.net);
       cctx.beginPath();
       cctx.arc(px, py, 4.0, 0, 6.2832);
-      cctx.fillStyle = CH.dotFill;
+      cctx.fillStyle = same ? CH.dotFill : 'rgba(255,255,255,0.78)';
       cctx.fill();
       cctx.beginPath();
       cctx.arc(px, py, 4.0, 0, 6.2832);
-      cctx.strokeStyle = p.net >= 0 ? CH.net0 : CH.neg;
+      cctx.strokeStyle = same ? (p.net >= 0 ? CH.net0 : CH.neg) : CH.offDot;
       cctx.lineWidth = 1.7;
       cctx.stroke();
-      if (REC.pts.length <= 8) {
+      if (same && REC.pts.length <= 8) {
         cctx.fillStyle = CH.note;
         cctx.font = '8px "PingFang SC",sans-serif';
         cctx.textAlign = 'center'; cctx.textBaseline = 'bottom';
         cctx.fillText(String(i + 1), px, py - 5);
       }
     }
+  }
+
+  /* 脚注：把"点为什么不动、灰点是什么"一句话说清 */
+  if (offCond) {
+    cctx.fillStyle = CH.ghostLab;
+    cctx.font = '9px "PingFang SC",sans-serif';
+    cctx.textAlign = 'right'; cctx.textBaseline = 'bottom';
+    cctx.fillText('灰点 = 其他条件测得', plotR - 2, plotT - 3);
+  }
+  if (typeof chartFootEl !== 'undefined' && chartFootEl) {
+    chartFootEl.textContent = offCond
+      ? '灰点是在别的温度 / 口径 / 浓度下测的，所以没跟着曲线动——条件一变，曲线才会动'
+      : (REC.pts.length ? '空心点 = 你测得的；实心点 = 当前工作点' : '曲线随拖动逐步生成，记录数据后实测点会标在线上');
   }
 
   /* --- 当前工作点 --- */
@@ -316,10 +361,10 @@ function drawChart() {
     cctx.fillText('净光合 < 0', plotL + 6, yZero + 12);
   }
   if (State.sat !== null) {
-    cctx.fillStyle = 'rgba(14,138,92,0.62)';
+    cctx.fillStyle = 'rgba(14,138,92,0.72)';
     cctx.font = '9px "PingFang SC",sans-serif';
     cctx.textAlign = 'center'; cctx.textBaseline = 'top';
     const sx = (xOf(State.sat) + plotR) / 2;
-    if (plotR - xOf(State.sat) > 46) cctx.fillText('加光不再增益', sx, plotT + 2);
+    if (plotR - xOf(State.sat) > 46) haloText('加光不再增益', sx, plotT + 2);
   }
 }

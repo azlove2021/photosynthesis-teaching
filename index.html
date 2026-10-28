@@ -130,7 +130,8 @@ body{
 }
 
 /* ---------- side ---------- */
-.side{display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:10px;min-height:0}
+/* 四行：对账 / 曲线（伸缩）/ 任务（探究态才有）/ 化学式抽屉（常驻，折叠时一行） */
+.side{display:grid;grid-template-rows:auto minmax(0,1fr) auto auto;gap:10px;min-height:0}
 .panel{
   border:1px solid var(--line);border-radius:14px;background:var(--panel);
   padding:12px 14px;min-height:0;box-shadow:var(--sh1);
@@ -149,6 +150,13 @@ body{
 .op{font-size:17px;color:var(--tx3);padding-bottom:15px}
 
 .unit-line{font-size:10px;color:var(--tx3);margin-top:6px;text-align:center;letter-spacing:.2px}
+
+/* 口径切换的唯一定量证据：曲线位移只有 0.47，看图看不出来，只能给数 */
+.split-line{
+  font-size:10px;color:var(--amber-d);margin-top:4px;text-align:center;line-height:1.45;
+  background:rgba(200,130,14,.09);border-radius:6px;padding:2px 8px;
+}
+.split-line.leaf{color:var(--blue-d);background:rgba(31,111,208,.075)}
 
 .bipolar{margin-top:10px}
 .bp-track{position:relative;height:9px;border-radius:5px;background:#e9f0f7;overflow:hidden;box-shadow:inset 0 1px 2px rgba(22,35,47,.06)}
@@ -174,6 +182,69 @@ body{
 .task .td{font-size:10.5px;color:var(--tx3);line-height:1.5;margin-top:2px}
 .task.done{opacity:.55}
 .task.done .tn{color:var(--tx3)}
+
+/* ---------- 化学式抽屉 ----------
+   折叠时只占一行标题；展开后**浮在曲线上方**而不是把曲线挤扁——
+   右栏只有一列，曲线是伸缩行，若让抽屉参与排布，投影时会把曲线压到
+   最小高度甚至裁掉一截。做成上浮的抽屉，开合不影响任何一块布局。 */
+.chemp{position:relative;padding:0;overflow:visible;transition:border-color .16s,box-shadow .16s}
+.chemp.open{border-color:var(--line2);box-shadow:var(--sh2)}
+.chem-head{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;
+  background:transparent;border:0;cursor:pointer;padding:10px 14px;font-family:var(--sans);
+  border-radius:14px;transition:background .16s;
+}
+.chem-head:hover{background:#f7fbff}
+.chem-t{font-size:11.5px;color:var(--tx2);letter-spacing:.5px;display:flex;align-items:center;gap:7px}
+.chem-t::before{
+  content:"";width:6px;height:6px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 0 3px rgba(15,155,100,.13);
+}
+.chem-body{
+  position:absolute;left:0;right:0;bottom:calc(100% + 10px);z-index:6;
+  background:var(--panel);border:1px solid var(--line2);border-radius:14px;
+  box-shadow:0 20px 44px rgba(16,32,48,.18);
+  padding:12px 15px 14px;max-height:min(56vh,440px);overflow-y:auto;overscroll-behavior:contain;
+  animation:chemIn .17s ease-out;
+}
+@keyframes chemIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.cg{padding:7px 0;border-bottom:1px dashed var(--line)}
+.cg:first-child{padding-top:2px}
+.cg.last{border-bottom:0;padding-bottom:2px}
+.cg-h{font-size:11px;font-weight:600;color:var(--blue-d);letter-spacing:.4px;margin-bottom:4px}
+.csub{font-size:9.5px;color:var(--tx3);margin:4px 0 1px;letter-spacing:.3px}
+.fml{
+  font-family:var(--mono);font-size:11.5px;color:var(--tx);line-height:1.72;
+  letter-spacing:.1px;white-space:nowrap;overflow-x:auto;overflow-y:hidden;
+  scrollbar-width:none;
+}
+.fml::-webkit-scrollbar{display:none}
+.fml b{color:var(--amber-d);font-weight:600}
+.fml sub{font-size:.72em}
+.fml.sum{
+  margin-top:5px;padding-top:5px;border-top:1px solid var(--line);
+  color:var(--blue-d);font-weight:600;
+}
+/* 反应箭头：条件写在箭头上方，箭头本身用 CSS 画，避免字体缺字。
+   底部留 7px 是关键——中文全角字在 line-height:1 时会溢出内容盒，
+   线压在 padding 里就会被字压穿（第一版就是这样，箭头横穿"光能·叶绿体"）。 */
+.arw{
+  display:inline-block;position:relative;margin:0 9px 1px;padding:0 2px 8px;
+  font-family:var(--sans);font-size:9px;line-height:1.3;color:#7b8fa1;
+  white-space:nowrap;vertical-align:1px;text-align:center;min-width:52px;
+}
+.arw::before{
+  content:"";position:absolute;left:0;right:4px;bottom:2px;
+  border-bottom:1px solid #a8c0d6;
+}
+.arw::after{
+  content:"";position:absolute;right:0;bottom:0;width:0;height:0;
+  border-left:4.5px solid #a8c0d6;
+  border-top:2.5px solid transparent;border-bottom:2.5px solid transparent;
+}
+.cnote{font-size:10px;color:var(--tx2);line-height:1.52;margin-top:4px}
+.cnote b{color:var(--tx);font-weight:600}
 
 /* ---------- controls ---------- */
 .controls{
@@ -339,6 +410,7 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.18)}
   .side{grid-template-rows:auto auto;grid-template-columns:1fr 1fr}
   .chartp{grid-column:span 1}
   .taskp{grid-column:span 2}
+  .chemp{grid-column:span 2}
   .controls{flex-wrap:wrap}
   .ctl{flex:1 1 180px}
 }
@@ -432,6 +504,7 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.18)}
           </div>
         </div>
         <div class="unit-line">单位：μmol CO₂ · m⁻² · s⁻¹</div>
+        <div class="split-line" id="vRespSub">其中根茎呼吸 0.5（只呼吸、不光合）</div>
         <div class="bipolar">
           <div class="bp-track"><div class="bp-zero"></div><div class="bp-fill" id="bpFill"></div></div>
           <div class="bp-lab"><span>净 &lt; 0</span><span class="bp-zero-lab">0</span><span>净 &gt; 0</span></div>
@@ -464,6 +537,87 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.18)}
         <div class="tasklist" id="taskList"></div>
       </div>
 
+      <!-- 化学式抽屉：默认折叠，展开后内部滚动。
+           口径按人教版 2019 必修 1：光合的还原氢写 NADPH（旧教材作 [H]），
+           呼吸统一写 [H]；能量只给 2870 / 1161 两个数字，不写 ATP 个数。 -->
+      <div class="panel chemp" id="chemPanel">
+        <button class="chem-head" id="btnChem" aria-expanded="false" aria-controls="chemBody">
+          <span class="chem-t">化学式与能量流</span>
+          <span class="p-sub" id="chemHint">点开看</span>
+        </button>
+        <div class="chem-body" id="chemBody" hidden>
+
+          <div class="cg">
+            <div class="cg-h">一 · 光合作用总反应</div>
+            <div class="fml">6CO<sub>2</sub> + 6H<sub>2</sub>O
+              <span class="arw">光能·叶绿体</span>
+              C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> + 6O<sub>2</sub></div>
+            <div class="cnote">把水写全的式子：6CO<sub>2</sub> + 12H<sub>2</sub>O →
+              C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> + 6O<sub>2</sub> + 6H<sub>2</sub>O。
+              它说明 <b>O₂ 里的氧全部来自水</b>，葡萄糖里的氧来自 CO<sub>2</sub>。</div>
+          </div>
+
+          <div class="cg">
+            <div class="cg-h">二 · 光合的两个阶段</div>
+            <div class="csub">光反应 · 类囊体薄膜上</div>
+            <div class="fml">H<sub>2</sub>O <span class="arw">光能、色素</span>
+              NADPH（即 [H]） + O<sub>2</sub></div>
+            <div class="fml">ADP + Pi <span class="arw">光能</span> ATP</div>
+            <div class="csub">暗反应 · 叶绿体基质中</div>
+            <div class="fml">CO<sub>2</sub> + C<sub>5</sub> <span class="arw">酶</span> 2C<sub>3</sub></div>
+            <div class="fml">2C<sub>3</sub> + NADPH + ATP <span class="arw">酶</span>
+              (CH<sub>2</sub>O) + C<sub>5</sub></div>
+            <div class="cnote">光反应把 <b>NADPH 和 ATP</b> 交给暗反应；暗反应把 ADP、Pi 和
+              NADP<sup>+</sup> 还回去。所以"暗反应不直接需要光"不等于"没有光也能长久进行"——
+              停了光反应，它很快就没原料了。</div>
+          </div>
+
+          <div class="cg">
+            <div class="cg-h">三 · 有氧呼吸三个阶段（还原氢写作 [H]）</div>
+            <div class="csub">① 细胞质基质</div>
+            <div class="fml">C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> <span class="arw">酶</span>
+              2 丙酮酸 + 4[H] + 少量能量</div>
+            <div class="csub">② 线粒体基质</div>
+            <div class="fml">2 丙酮酸 + 6H<sub>2</sub>O <span class="arw">酶</span>
+              6CO<sub>2</sub> + 20[H] + 少量能量</div>
+            <div class="csub">③ 线粒体内膜</div>
+            <div class="fml">24[H] + 6O<sub>2</sub> <span class="arw">酶</span>
+              12H<sub>2</sub>O + 大量能量</div>
+            <div class="fml sum">C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> + 6O<sub>2</sub> + 6H<sub>2</sub>O
+              <span class="arw">酶</span> 6CO<sub>2</sub> + 12H<sub>2</sub>O + 能量</div>
+            <div class="cnote">只有<b>第三阶段</b>消耗 O<sub>2</sub>。O<sub>2</sub> 的作用是接受 [H] 生成水，
+              不是直接去和葡萄糖反应。CO<sub>2</sub> 只在第二阶段产生。</div>
+          </div>
+
+          <div class="cg">
+            <div class="cg-h">四 · 能量去哪了</div>
+            <div class="fml">1 mol 葡萄糖彻底氧化分解 → 释放 <b>2870 kJ</b></div>
+            <div class="cnote">其中 <b>1161 kJ 储存在 ATP 中</b>，其余以热能散失。
+              教材不要求记 ATP 的个数，只要求记住这两个数字和"大部分以热能形式散失"。</div>
+          </div>
+
+          <div class="cg">
+            <div class="cg-h">五 · 无氧呼吸（作对照）</div>
+            <div class="fml">C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> <span class="arw">酶</span>
+              2C<sub>3</sub>H<sub>6</sub>O<sub>3</sub>（乳酸） + 少量能量</div>
+            <div class="fml">C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> <span class="arw">酶</span>
+              2C<sub>2</sub>H<sub>5</sub>OH + 2CO<sub>2</sub> + 少量能量</div>
+            <div class="cnote">无氧呼吸只在<b>第一阶段</b>产生少量 ATP，有机物分解不彻底。</div>
+          </div>
+
+          <div class="cg last">
+            <div class="cg-h">六 · 和本页模型的关系</div>
+            <div class="cnote">
+              · 本模型只算<b>有氧呼吸</b>，不计无氧呼吸；ATP 只作过程示意，不标个数。<br>
+              · 光合与呼吸<b>同时进行、互不停歇</b>。曲线上的"净光合"只是两者相减的净结果：
+              <b>净积累 / 净消耗 / 恰好抵消</b>，不是"一个开、一个关"。<br>
+              · 光强为 0 时总光合为 0、呼吸不为 0；这与"光合一停呼吸就停"是两件事。
+            </div>
+          </div>
+
+        </div>
+      </div>
+
     </aside>
   </main>
 
@@ -476,7 +630,7 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.18)}
       </div>
     </div>
 
-    <div class="ctl" id="ctlTemp">
+    <div class="ctl ctl-temp" id="ctlTemp">
       <div class="ctl-top"><label>温度</label></div>
       <div class="ctl-body" id="tempWrap">
         <input type="range" id="sldTemp" min="10" max="40" step="1" value="25">
@@ -558,6 +712,7 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.18)}
       <li><b>← →</b>：切换问题串（Q1–Q16，和讲义逐题对应）。上课就按方向键往下讲。</li>
       <li><b>↑ ↓</b>：调光强，按住 Shift 走大步。投影时不用去够滑杆。</li>
       <li><b>R</b>：记录此刻的读数，实测点会标到曲线上。</li>
+      <li><b>C</b>：展开 / 收起「化学式与能量流」（光合与呼吸的方程式、三阶段、2870 kJ 与 1161 kJ）。</li>
       <li><b>H</b>：纯净模式，隐藏全部面板只留植株；再按一次恢复。</li>
       <li><b>F</b>：全屏。<b>空格</b>：回到教材标准状态（800、25 ℃、400 ppm、21% O₂）。</li>
       <li><b>拖动 / 滚轮 / 双击</b>：旋转 / 缩放 / 回到初始视角。</li>
@@ -596,7 +751,10 @@ const PHYS = {
   cRef: 400,
   oRef: 21,
   o2Penalty: 0.0062, // 每超出 1% O2，光呼吸导致的下降比例
-  satFrac: 0.92,     // 判定光饱和的阈值（达 Pmax 的 92%）
+  /* 判定光饱和的阈值。0.92 时标注点落在曲线还在明显上爬的位置，
+     学生看图会觉得"明明还在升，怎么就说饱和了"。抬到 0.94 之后
+     标注点移到 I≈1300，曲线在那里已经基本压平，与"加光不再增益"对得上。 */
+  satFrac: 0.94,
   iMax: 2000
 };
 
@@ -2347,7 +2505,10 @@ world.add(chamberGroup);
   const glass = new THREE.MeshPhysicalMaterial({
     color: 0xdcecfa,
     transparent: true,
-    opacity: 0.062,
+    /* 0.062 → 0.034。BackSide 的盒子会同时画出底面、后面、侧面三层背面，
+       三层各 6.2% 白叠起来接近两成，箱内整天蒙着一层雾，叶片的层次全糊了。
+       玻璃的存在感本来应该由菲涅尔冷边（下面的 rimGlass）承担，不是靠白幕。 */
+    opacity: 0.034,
     roughness: 0.04,
     metalness: 0,
     side: THREE.BackSide,
@@ -2421,16 +2582,61 @@ world.add(chamberGroup);
     chamberGroup.add(post);
   });
 
-  /* 顶盖 */
+  /* 顶盖 —— 必须是一块**不受光**的玻璃。
+     灯管就在盖板上方 0.35 m，聚光灯打下来时盖板整片越过中性曲线的肩部
+     （0.855 以上），在画面上烧出一个椭圆白斑，看着像箱盖破了个洞。
+     玻璃本来就不该"被照白"，它该是透的：所以换成不受光材质，
+     存在感交给金属压框和菲涅尔冷边。注意**不要**给它开投影——
+     盖板是玻璃，开了投影整片箱内会直接黑掉，那是把对的改错。 */
   const lid = new THREE.Mesh(
-    new THREE.BoxGeometry(CHAMBER.w + 0.07, 0.035, CHAMBER.d + 0.07),
-    new THREE.MeshStandardMaterial({
-      color: 0xc9dcee, roughness: 0.2, metalness: 0.3,
-      transparent: true, opacity: 0.42
+    new THREE.BoxGeometry(CHAMBER.w + 0.07, 0.016, CHAMBER.d + 0.07),
+    new THREE.MeshBasicMaterial({
+      /* 用一张渐变贴图代替单纯的半透明：均匀的 22% 白在浅底上等于没有，
+         整块盖板直接消失，箱子看着像没盖。玻璃的读法来自"边缘厚、中间薄"
+         的那点色差，所以这里做一条前后方向的渐变，再叠一道斜向高光。 */
+      map: (function () {
+        const S = 256, c = document.createElement('canvas');
+        c.width = c.height = S;
+        const g = c.getContext('2d');
+        const lg = g.createLinearGradient(0, 0, 0, S);
+        lg.addColorStop(0.00, 'rgba(186,214,240,0.66)');
+        lg.addColorStop(0.22, 'rgba(214,232,248,0.34)');
+        lg.addColorStop(0.55, 'rgba(238,247,255,0.20)');
+        lg.addColorStop(1.00, 'rgba(199,224,246,0.52)');
+        g.fillStyle = lg; g.fillRect(0, 0, S, S);
+        const rg = g.createLinearGradient(0, S * 0.30, S, S * 0.05);
+        rg.addColorStop(0.00, 'rgba(255,255,255,0)');
+        rg.addColorStop(0.46, 'rgba(255,255,255,0.34)');
+        rg.addColorStop(0.56, 'rgba(255,255,255,0.34)');
+        rg.addColorStop(1.00, 'rgba(255,255,255,0)');
+        g.fillStyle = rg; g.fillRect(0, 0, S, S);
+        const tx = new THREE.CanvasTexture(c);
+        tx.encoding = THREE.sRGBEncoding;
+        return tx;
+      })(),
+      transparent: true, opacity: 1, depthWrite: false
     })
   );
-  lid.position.y = CHAMBER.h + 0.017;
+  lid.position.y = CHAMBER.h + 0.008;
+  lid.renderOrder = 7;
   chamberGroup.add(lid);
+
+  /* 金属压框：盖板失去受光之后，边缘必须有个硬东西把它"框住"，
+     否则那块玻璃在浅底上会散成一片雾。metalness 压到 0.35——本场景没有
+     envMap，金属度一高就只剩一片黑边。 */
+  const frameMat = new THREE.MeshStandardMaterial({
+    color: 0xa9bccd, roughness: 0.34, metalness: 0.35
+  });
+  const fW = CHAMBER.w + 0.07, fD = CHAMBER.d + 0.07;
+  const fy = CHAMBER.h + 0.020, fw = 0.030;
+  [-1, 1].forEach(function (s) {
+    const bx = new THREE.Mesh(new THREE.BoxGeometry(fW, fw, fw), frameMat);
+    bx.position.set(0, fy, s * (fD / 2 - fw / 2));
+    chamberGroup.add(bx);
+    const bz = new THREE.Mesh(new THREE.BoxGeometry(fw, fw, fD - fw * 2), frameMat);
+    bz.position.set(s * (fW / 2 - fw / 2), fy, 0);
+    chamberGroup.add(bz);
+  });
 })();
 
 /* --- 传感器探头（贴壁安装，探杆指向箱内） --- */
@@ -2769,6 +2975,8 @@ setLampLevel(0);
 
 const chartCanvas = document.getElementById('chart');
 const cctx = chartCanvas.getContext('2d');
+/* 图下那行小字：由 drawChart 按"有没有跨条件的实测点"改写 */
+const chartFootEl = document.getElementById('chartFoot');
 let chartW = 300, chartH = 200, chartDPR = 1;
 
 /* 语义色：净光合=蓝，总光合=绿，呼吸=橙，负值=红。
@@ -2794,6 +3002,7 @@ const CH = {
   sat: 'rgba(16,150,99,0.95)',
   satLab: '#0e8a5c',
   dotFill: 'rgba(255,255,255,0.95)',
+  offDot: 'rgba(126,145,163,0.58)',
   cross: 'rgba(22,34,46,0.16)',
   note: '#8398a9'
 };
@@ -2816,16 +3025,34 @@ function netOf(I, T, C, O, whole) {
   return grossAt(I, T, C, O) - respAt(T, whole);
 }
 
+/* 纵轴的取值原则：**轴是尺子，不跟口径走**。
+   曾经的写法把 max over 温度 的呼吸按当前口径取值，于是"整株 → 只看叶片"
+   时纵轴下界从 −8 收到 −6、跨度从 38 收到 36：曲线在 I=800 处实际位移
+   0 像素，零线却下移 8.8 像素，学生看到的是"净光合变高了"——一个纯由
+   坐标轴制造的假象。真实差值只有 0.47（整株 2.15 − 叶片 1.68）。
+   所以这里恒按整株取呼吸，让轴只随**温度、CO₂、O₂**这些真正的实验条件变；
+   口径切换时整条曲线平移，幅度就是那 0.47，读数区另有分解说明。 */
 function chartRanges() {
   let pmax = 1, rd = 1;
   const temps = [15, 25, 35, State.T];
   for (let i = 0; i < temps.length; i++) {
     pmax = Math.max(pmax, pmaxAt(temps[i], State.C, State.O));
-    rd = Math.max(rd, respAt(temps[i], State.whole));
+    rd = Math.max(rd, respAt(temps[i], true));
   }
   const yMax = Math.ceil(pmax * 1.10 / 5) * 5;
   const yMin = -Math.ceil(Math.max(rd * 1.55, 3.6) / 2) * 2;
   return { yMax: yMax, yMin: yMin };
+}
+
+/* 画布上的文字一律先描一圈白边再填字。
+   曲线、鬼影线、网格都会从标签底下穿过去，浅底上不加白边就糊成一团——
+   "光补偿点"尤其明显，它正好落在曲线起步的位置。 */
+function haloText(txt, x, y) {
+  cctx.lineJoin = 'round';
+  cctx.lineWidth = 3.2;
+  cctx.strokeStyle = 'rgba(255,255,255,0.94)';
+  cctx.strokeText(txt, x, y);
+  cctx.fillText(txt, x, y);
 }
 
 function drawChart() {
@@ -2918,7 +3145,7 @@ function drawChart() {
       cctx.fillStyle = CH.ghostLab;
       cctx.font = '9px ui-monospace,Consolas,monospace';
       cctx.textAlign = 'right'; cctx.textBaseline = 'middle';
-      cctx.fillText(T + '℃', plotR - 2, yOf(vEnd) + (T > State.T ? 9 : -9));
+      haloText(T + '℃', plotR - 2, yOf(vEnd) + (T > State.T ? 9 : -9));
     }
   }
 
@@ -2986,7 +3213,7 @@ function drawChart() {
       cctx.fillStyle = CH.respLab;
       cctx.font = '9px "PingFang SC",sans-serif';
       cctx.textAlign = 'left'; cctx.textBaseline = 'middle';
-      cctx.fillText('呼吸', x + 5, (y1 + y2) / 2);
+      haloText('呼吸', x + 5, (y1 + y2) / 2);
     }
   }
 
@@ -3004,8 +3231,10 @@ function drawChart() {
     cctx.stroke();
     cctx.fillStyle = CH.negLab;
     cctx.font = '9.5px "PingFang SC",sans-serif';
-    cctx.textAlign = 'left'; cctx.textBaseline = 'bottom';
-    cctx.fillText('光补偿点', Math.min(x + 9, plotR - 44), y - 5);
+    /* 补偿点几乎都贴着左边（≈40），标签放在零点线**下方**——那里是负值区的
+       空白，曲线不经过；放上方会和起步段的曲线压在一起。 */
+    cctx.textAlign = 'left'; cctx.textBaseline = 'top';
+    haloText('光补偿点', Math.min(x + 9, plotR - 46), y + 6);
   }
 
   /* --- 光饱和点 --- */
@@ -3020,32 +3249,54 @@ function drawChart() {
     cctx.textAlign = 'center';
     const above = y > plotT + 42;
     cctx.textBaseline = above ? 'bottom' : 'top';
-    cctx.fillText('光饱和点', x, above ? y - 7 : y + 8);
+    haloText('光饱和点', x, above ? y - 7 : y + 8);
   }
 
   /* --- 实测点：学生自己记下来的数据 ---
      空心圆 + 序号，和工作点（实心）区分开。
-     曲线上有实测点，"这条线是怎么来的"才讲得通。 */
+     曲线上有实测点，"这条线是怎么来的"才讲得通。
+
+     每个点都停在**它被测出来的那个高度**上（p.net），不按当前条件重画——
+     重画就等于伪造了一次测量。条件对不上的点变灰、不编号，老老实实待在
+     原位；它反而成了"这条曲线是随温度、随 CO₂ 动的"最直接的证据。 */
+  let offCond = 0;
   if (REC.pts.length) {
     for (let i = 0; i < REC.pts.length; i++) {
       const p = REC.pts[i];
+      const same = p.whole === State.whole &&
+        Math.abs(p.T - State.T) < 0.01 &&
+        p.C === State.C && p.O === State.O;
+      if (!same) offCond++;
       const px = xOf(p.I), py = yOf(p.net);
       cctx.beginPath();
       cctx.arc(px, py, 4.0, 0, 6.2832);
-      cctx.fillStyle = CH.dotFill;
+      cctx.fillStyle = same ? CH.dotFill : 'rgba(255,255,255,0.78)';
       cctx.fill();
       cctx.beginPath();
       cctx.arc(px, py, 4.0, 0, 6.2832);
-      cctx.strokeStyle = p.net >= 0 ? CH.net0 : CH.neg;
+      cctx.strokeStyle = same ? (p.net >= 0 ? CH.net0 : CH.neg) : CH.offDot;
       cctx.lineWidth = 1.7;
       cctx.stroke();
-      if (REC.pts.length <= 8) {
+      if (same && REC.pts.length <= 8) {
         cctx.fillStyle = CH.note;
         cctx.font = '8px "PingFang SC",sans-serif';
         cctx.textAlign = 'center'; cctx.textBaseline = 'bottom';
         cctx.fillText(String(i + 1), px, py - 5);
       }
     }
+  }
+
+  /* 脚注：把"点为什么不动、灰点是什么"一句话说清 */
+  if (offCond) {
+    cctx.fillStyle = CH.ghostLab;
+    cctx.font = '9px "PingFang SC",sans-serif';
+    cctx.textAlign = 'right'; cctx.textBaseline = 'bottom';
+    cctx.fillText('灰点 = 其他条件测得', plotR - 2, plotT - 3);
+  }
+  if (typeof chartFootEl !== 'undefined' && chartFootEl) {
+    chartFootEl.textContent = offCond
+      ? '灰点是在别的温度 / 口径 / 浓度下测的，所以没跟着曲线动——条件一变，曲线才会动'
+      : (REC.pts.length ? '空心点 = 你测得的；实心点 = 当前工作点' : '曲线随拖动逐步生成，记录数据后实测点会标在线上');
   }
 
   /* --- 当前工作点 --- */
@@ -3076,11 +3327,11 @@ function drawChart() {
     cctx.fillText('净光合 < 0', plotL + 6, yZero + 12);
   }
   if (State.sat !== null) {
-    cctx.fillStyle = 'rgba(14,138,92,0.62)';
+    cctx.fillStyle = 'rgba(14,138,92,0.72)';
     cctx.font = '9px "PingFang SC",sans-serif';
     cctx.textAlign = 'center'; cctx.textBaseline = 'top';
     const sx = (xOf(State.sat) + plotR) / 2;
-    if (plotR - xOf(State.sat) > 46) cctx.fillText('加光不再增益', sx, plotT + 2);
+    if (plotR - xOf(State.sat) > 46) haloText('加光不再增益', sx, plotT + 2);
   }
 }
 
@@ -3100,6 +3351,7 @@ const el = {
   tempWrap: $('tempWrap'), tempPills: $('tempPills'),
   tgWhole: $('tgWhole'),
   vGross: $('vGross'), vResp: $('vResp'), vNet: $('vNet'),
+  vRespSub: $('vRespSub'),
   bpFill: $('bpFill'), ledgerNote: $('ledgerNote'),
   ledgerSub: $('ledgerSub'),
   co2Val: $('co2Val'), o2Val: $('o2Val'),
@@ -3161,6 +3413,17 @@ function updateReadouts(dt) {
 
   el.ledgerSub.textContent = State.T + ' ℃ · ' + State.C + ' ppm · ' + State.O + '% O₂';
 
+  /* 呼吸的分解。口径切换时曲线的位移只有 0.47，纵轴又刻意不动，
+     光看图根本看不出来，所以这个差值必须给成一个数——
+     "整株比叶片低的那部分是什么"，答案就在这里。 */
+  if (el.vRespSub) {
+    const stem = respAt(State.T, true) - respAt(State.T, false);
+    el.vRespSub.textContent = State.whole
+      ? '其中根茎呼吸 ' + fmt(stem, 1) + '（只呼吸、不光合）'
+      : '只计叶片，根茎的 ' + fmt(stem, 1) + ' 未计入';
+    el.vRespSub.classList.toggle('leaf', !State.whole);
+  }
+
   /* 舞台内常驻条件卡（纯净投影时唯一的光照/温度读数） */
   if (el.condLight) el.condLight.textContent = String(Math.round(State.I));
   if (el.condTemp) el.condTemp.textContent = String(Math.round(State.T));
@@ -3212,8 +3475,9 @@ function narrate() {
     text = '光强 ≈ 光补偿点：总光合 = 呼吸，净光合 = 0。此刻箱内 CO₂ 与 O₂ 浓度都停止变化——一个"看起来什么都没发生"的临界点。';
   } else if (sat !== null && State.I >= sat * 0.97) {
     tag = '光饱和'; cls = 'neutral';
-    text = '光已饱和：再增加光强，总光合也不再上升（受暗反应、CO₂ 供应与酶的限制）。此时净光合 ' + nTxt +
-      ' 已接近这株植物的上限。';
+    text = '光已饱和：再增加光强，总光合也不再上升（受暗反应、CO₂ 供应与酶的限制）。' +
+      '画面里的灯还会继续变亮——光是真的变多了，只是这株植物用不上，多余的部分变成了热。' +
+      '此时净光合 ' + nTxt + ' 已经接近它的上限。';
   } else {
     tag = '正积累'; cls = '';
     text = '光强已越过补偿点：总光合 ' + gTxt + ' > 呼吸 ' + rTxt + '，净光合 ' + nTxt +
@@ -3227,7 +3491,9 @@ function narrate() {
   }
 
   if (!State.whole) {
-    text += ' 当前只计叶片；切回整株，根与茎只呼吸不光合，净光合会进一步降低。';
+    const stem = respAt(State.T, true) - respAt(State.T, false);
+    text += ' 当前只计叶片：根、茎只呼吸不光合，切回整株，净光合还要再低 ' +
+      fmt(stem, 1) + '。';
   }
 
   el.nrTag.textContent = tag;
@@ -3368,6 +3634,24 @@ $('helpClose').addEventListener('click', () => { $('helpMask').hidden = true; })
 $('helpMask').addEventListener('click', e => {
   if (e.target === $('helpMask')) $('helpMask').hidden = true;
 });
+
+/* ---------- 化学式抽屉 ----------
+   默认折叠：右栏只有一列，曲线那格是伸缩行，抽屉一展开就会把它压到
+   最小高度。折叠时它只占一行标题，展开后自己在内部滚动。
+   展开/收起要重算画布高度，否则曲线会按旧尺寸继续画。 */
+const chemPanel = $('chemPanel'), chemBody = $('chemBody'), btnChem = $('btnChem');
+function toggleChem() {
+  if (!chemBody) return;
+  const open = chemBody.hidden;
+  chemBody.hidden = !open;
+  if (chemPanel) chemPanel.classList.toggle('open', open);
+  if (btnChem) btnChem.setAttribute('aria-expanded', open ? 'true' : 'false');
+  const hint = $('chemHint');
+  if (hint) hint.textContent = open ? '收起' : '点开看';
+  requestAnimationFrame(resizeChart);
+  setTimeout(resizeChart, 60);
+}
+if (btnChem) btnChem.addEventListener('click', toggleChem);
 
 window.addEventListener('keydown', e => {
   if (e.code === 'Space' && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) {
@@ -3599,19 +3883,25 @@ function recordPoint() {
     RECE.count.textContent = REC.max + ' 组（已满）';
     return;
   }
-  /* 同一光强附近不重复记，免得表格被连点灌满 */
+  /* 同一光强、同一套条件附近不重复记，免得表格被连点灌满 */
   for (let i = 0; i < REC.pts.length; i++) {
-    if (Math.abs(REC.pts[i].I - State.I) < 12 && REC.pts[i].T === State.T) {
+    const q = REC.pts[i];
+    if (Math.abs(q.I - State.I) < 12 && q.T === State.T &&
+        q.C === State.C && q.O === State.O && q.whole === State.whole) {
       RECE.count.textContent = REC.pts.length + ' 组 · 该点已记';
       return;
     }
   }
+  /* C / O 也要一起存：它们一变，曲线整条都在动，
+     只记 T 和口径会让"同条件"的判断出错。 */
   REC.pts.push({
     I: Math.round(State.I),
     net: State.rates.net,
     gross: State.rates.gross,
     resp: State.rates.resp,
     T: State.T,
+    C: State.C,
+    O: State.O,
     whole: State.whole
   });
   renderRec();
@@ -3679,6 +3969,7 @@ document.addEventListener('keydown', function (e) {
     e.preventDefault(); if (onRange) ae.blur();
     setLight(State.I - (e.shiftKey ? 150 : 25));
   } else if (k === 'r' || k === 'R') { recordPoint(); }
+  else if (k === 'c' || k === 'C') { if (typeof toggleChem === 'function') toggleChem(); }
   else if (k === 'h' || k === 'H') { togglePure(); }
   else if (k === 'f' || k === 'F') { toggleFull(); }
 });

@@ -13,6 +13,7 @@ const el = {
   tempWrap: $('tempWrap'), tempPills: $('tempPills'),
   tgWhole: $('tgWhole'),
   vGross: $('vGross'), vResp: $('vResp'), vNet: $('vNet'),
+  vRespSub: $('vRespSub'),
   bpFill: $('bpFill'), ledgerNote: $('ledgerNote'),
   ledgerSub: $('ledgerSub'),
   co2Val: $('co2Val'), o2Val: $('o2Val'),
@@ -74,6 +75,17 @@ function updateReadouts(dt) {
 
   el.ledgerSub.textContent = State.T + ' ℃ · ' + State.C + ' ppm · ' + State.O + '% O₂';
 
+  /* 呼吸的分解。口径切换时曲线的位移只有 0.47，纵轴又刻意不动，
+     光看图根本看不出来，所以这个差值必须给成一个数——
+     "整株比叶片低的那部分是什么"，答案就在这里。 */
+  if (el.vRespSub) {
+    const stem = respAt(State.T, true) - respAt(State.T, false);
+    el.vRespSub.textContent = State.whole
+      ? '其中根茎呼吸 ' + fmt(stem, 1) + '（只呼吸、不光合）'
+      : '只计叶片，根茎的 ' + fmt(stem, 1) + ' 未计入';
+    el.vRespSub.classList.toggle('leaf', !State.whole);
+  }
+
   /* 舞台内常驻条件卡（纯净投影时唯一的光照/温度读数） */
   if (el.condLight) el.condLight.textContent = String(Math.round(State.I));
   if (el.condTemp) el.condTemp.textContent = String(Math.round(State.T));
@@ -125,8 +137,9 @@ function narrate() {
     text = '光强 ≈ 光补偿点：总光合 = 呼吸，净光合 = 0。此刻箱内 CO₂ 与 O₂ 浓度都停止变化——一个"看起来什么都没发生"的临界点。';
   } else if (sat !== null && State.I >= sat * 0.97) {
     tag = '光饱和'; cls = 'neutral';
-    text = '光已饱和：再增加光强，总光合也不再上升（受暗反应、CO₂ 供应与酶的限制）。此时净光合 ' + nTxt +
-      ' 已接近这株植物的上限。';
+    text = '光已饱和：再增加光强，总光合也不再上升（受暗反应、CO₂ 供应与酶的限制）。' +
+      '画面里的灯还会继续变亮——光是真的变多了，只是这株植物用不上，多余的部分变成了热。' +
+      '此时净光合 ' + nTxt + ' 已经接近它的上限。';
   } else {
     tag = '正积累'; cls = '';
     text = '光强已越过补偿点：总光合 ' + gTxt + ' > 呼吸 ' + rTxt + '，净光合 ' + nTxt +
@@ -140,7 +153,9 @@ function narrate() {
   }
 
   if (!State.whole) {
-    text += ' 当前只计叶片；切回整株，根与茎只呼吸不光合，净光合会进一步降低。';
+    const stem = respAt(State.T, true) - respAt(State.T, false);
+    text += ' 当前只计叶片：根、茎只呼吸不光合，切回整株，净光合还要再低 ' +
+      fmt(stem, 1) + '。';
   }
 
   el.nrTag.textContent = tag;
@@ -281,6 +296,24 @@ $('helpClose').addEventListener('click', () => { $('helpMask').hidden = true; })
 $('helpMask').addEventListener('click', e => {
   if (e.target === $('helpMask')) $('helpMask').hidden = true;
 });
+
+/* ---------- 化学式抽屉 ----------
+   默认折叠：右栏只有一列，曲线那格是伸缩行，抽屉一展开就会把它压到
+   最小高度。折叠时它只占一行标题，展开后自己在内部滚动。
+   展开/收起要重算画布高度，否则曲线会按旧尺寸继续画。 */
+const chemPanel = $('chemPanel'), chemBody = $('chemBody'), btnChem = $('btnChem');
+function toggleChem() {
+  if (!chemBody) return;
+  const open = chemBody.hidden;
+  chemBody.hidden = !open;
+  if (chemPanel) chemPanel.classList.toggle('open', open);
+  if (btnChem) btnChem.setAttribute('aria-expanded', open ? 'true' : 'false');
+  const hint = $('chemHint');
+  if (hint) hint.textContent = open ? '收起' : '点开看';
+  requestAnimationFrame(resizeChart);
+  setTimeout(resizeChart, 60);
+}
+if (btnChem) btnChem.addEventListener('click', toggleChem);
 
 window.addEventListener('keydown', e => {
   if (e.code === 'Space' && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) {
