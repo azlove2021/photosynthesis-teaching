@@ -11,8 +11,10 @@ JS_FILES = ['00-model.js', '10-scene.js', '15-post.js', '20-plant.js',
             '60-ui.js', '70-lesson.js']
 
 def read(p):
-    with io.open(p, 'r', encoding='utf-8') as f:
-        return f.read()
+    # newline='' 保留源文件原始换行，再统一归一化。
+    # 部分源文件本身是 CRLF（历史遗留），只改写出模式是压不住的。
+    with io.open(p, 'r', encoding='utf-8', newline='') as f:
+        return f.read().replace('\r\n', '\n').replace('\r', '\n')
 
 html = read(os.path.join(SRC, 'index.html'))
 css = read(os.path.join(SRC, 'style.css'))
@@ -27,7 +29,11 @@ html = html.replace('/*__CSS__*/', css)
 html = html.replace('/*__THREE__*/', three)
 html = html.replace('/*__APP__*/', app)
 
-with io.open(OUT, 'w', encoding='utf-8') as f:
+# 换行统一写 LF。Windows 文本模式下 Python 会把 '\n' 翻译成 '\r\n'，
+# 于是本地产物是 CRLF、git 提交时再归一化成 LF——同一份文件本地和线上
+# 字节数不同（751385 / 747662），md5 也对不上，排查时很容易误判成内容不一致。
+# 显式指定 newline 之后两边逐字节相同。
+with io.open(OUT, 'w', encoding='utf-8', newline='\n') as f:
     f.write(html)
 
 print('OK ->', OUT)
