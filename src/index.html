@@ -2,331 +2,199 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>光合作用与呼吸作用 · 总光合与净光合</title>
-<style>
-/*__CSS__*/
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>光合作用与呼吸作用 · 总光合与净光合（教学驾驶舱）</title>
+<!--
+  单文件离线课件 · 教学驾驶舱版式
+  three.js r149 全量内联（源文件 libs/three.min.js），无 CDN 兜底：
+  离线双击即开是硬要求，任何外链都会让课堂断网时白屏，所以这里不做 CDN fallback。
+-->
+<style>/*__CSS__*/</style>
 </head>
 <body>
-<div class="app">
 
-  <header class="hd">
-    <div class="hd-title">
-      <h1>光合作用与呼吸作用</h1>
-      <p>总光合 &nbsp;·&nbsp; 呼吸消耗 &nbsp;·&nbsp; 净光合 &nbsp;&nbsp;|&nbsp;&nbsp; 高三复习 · 交互演示</p>
-    </div>
-    <div class="hd-tools">
-      <div class="seg" id="modeSeg">
-        <button data-mode="demo" class="on">演示态</button>
-        <button data-mode="lab">探究态</button>
+<div id="app">
+
+  <!-- ① 顶栏 ------------------------------------------------------------ -->
+  <header id="top" class="panel">
+    <div class="trow">
+      <div class="brand">
+        <span class="badge">生物</span>
+        <div class="tit">
+          <h1 id="cTitle">光合作用与呼吸作用</h1>
+          <p id="cSub">一株植物上的三个量</p>
+        </div>
       </div>
-      <button class="ghost-btn" id="btnVoice" title="语音讲解（V）：开启后切题、记录、展开化学式都会自动朗读">讲解</button>
-      <button class="ghost-btn" id="btnReset" title="回到教材标准状态（空格）">重置</button>
-      <button class="ghost-btn" id="btnPure" title="隐藏所有面板，只留植株（H）">纯净</button>
-      <button class="ghost-btn" id="btnFull" title="全屏（F）">全屏</button>
-      <button class="ghost-btn" id="btnHelp" title="操作说明">?</button>
+
+      <div class="mq">
+        <span class="mq-k">主线问题</span>
+        <span class="mq-t" id="mqText">同化箱里那两只表，到底测到的是哪一项？</span>
+      </div>
+
+      <div class="hd-right">
+        <span class="run"><i></i>运行中</span>
+        <span class="score">得分 <b id="score">0</b><i>/3</i></span>
+        <button class="btn" id="btnQuiz" title="Q">检测 Q</button>
+        <button class="btn" id="btnExplore" title="自由探究">玩法</button>
+        <button class="btn" id="btnFull" title="Shift+F">全屏</button>
+        <button class="btn" id="tgLeft" title="H">讲解</button>
+        <button class="btn" id="tgRight" title="J">中控</button>
+        <button class="btn" id="tgCinema" title="F">影院</button>
+      </div>
     </div>
+
+    <!-- ② 因果链 -->
+    <div class="chain" id="chain"></div>
   </header>
 
-  <main class="main">
-    <section class="stage" id="stage">
+  <!-- ③ 步骤条 ---------------------------------------------------------- -->
+  <nav class="steps" id="steps" aria-label="步骤"></nav>
+
+  <!-- 中间三栏 ---------------------------------------------------------- -->
+  <div id="mid">
+
+    <!-- ④ 左栏：本步 -->
+    <aside class="left panel" id="leftPanel">
+      <div class="ph">
+        <span class="ph-t">本步</span>
+        <span class="crumb">问句 → 动手 → 结论 · 要点 · 考点</span>
+      </div>
+
+      <div class="lscroll">
+        <div class="sno">
+          <b id="sIdx">01</b>
+          <span id="sName">① 认识同化箱</span>
+        </div>
+
+        <p class="q" id="sQ"></p>
+        <p class="scene" id="sScene"></p>
+
+        <div class="try">
+          <span class="try-k">动手试一试</span>
+          <span class="chip" id="tryChip"><i class="dot"></i>还没做</span>
+        </div>
+        <p class="act" id="sAct"></p>
+
+        <div class="expect"><span class="lab">应该看到</span><span id="sExpect"></span></div>
+
+        <div id="sVerdict" class="verdict" hidden>
+          <div class="concl" id="sConcl"></div>
+          <div class="kv"><b>要点</b><span id="sPoint"></span></div>
+          <div class="kv"><b>考点</b><span id="sExam"></span></div>
+          <div class="warnbox" id="sWarn"></div>
+        </div>
+
+        <div class="lbtns">
+          <button class="btn pri" id="btnReveal">揭示结论</button>
+          <button class="btn" id="btnReset">复位本步</button>
+        </div>
+      </div>
+
+      <div class="units" id="units"></div>
+    </aside>
+
+    <!-- ⑤ 中央 3D 舞台 -->
+    <section id="stage3d">
       <canvas id="gl"></canvas>
-      <div class="stage-glow" id="stageGlow"></div>
+      <div id="tags"></div>
 
-      <div class="hud hud-sensor" id="sensorBox">
-        <div class="hud-cap">同化箱内读数</div>
-        <div class="srow">
-          <span class="sname">CO₂</span>
-          <span class="sval" id="co2Val">400</span>
-          <span class="sunit">ppm</span>
-          <span class="strend" id="co2Trend">—</span>
-        </div>
-        <div class="srow">
-          <span class="sname">O₂</span>
-          <span class="sval" id="o2Val">20.9</span>
-          <span class="sunit">%</span>
-          <span class="strend" id="o2Trend">—</span>
-        </div>
+      <div class="eqb" id="eqb"></div>
+
+      <div class="viewbar" id="viewbar">
+        <span class="vb-hint" id="vbHint">拖拽旋转 · 滚轮缩放 · 双击聚焦</span>
+        <button class="vbtn" id="btnHome" title="R">⟲ 复位</button>
       </div>
 
-      <div class="hud hud-cond">
-        <div class="hud-cap">实验条件</div>
-        <div class="crow">
-          <span class="ck">光照</span>
-          <span class="cv2" id="condLight">800</span>
-          <span class="cu">μmol·m⁻²·s⁻¹</span>
-        </div>
-        <div class="crow">
-          <span class="ck">温度</span>
-          <span class="cv2" id="condTemp">25</span>
-          <span class="cu">℃</span>
-        </div>
+      <div class="glove-tip" id="gloveTip">
+        <i></i>白手套已就位：点叶片看总光合/呼吸/净光合，点根看净光合与呼吸
       </div>
 
-      <div class="hud hud-legend">
-        <div class="lg"><i style="background:#12a06a"></i>O₂ 释放</div>
-        <div class="lg"><i style="background:#d98a2b"></i>CO₂ 吸收</div>
-        <div class="lg"><i style="background:#2f7fd0"></i>H₂O 上行</div>
-        <div class="lg"><i style="background:#c79a12"></i>有机物 下行</div>
-        <div class="lg"><i style="background:#e2653f"></i>呼吸 CO₂</div>
-      </div>
-
-      <div class="stage-hint">拖动旋转 &nbsp;·&nbsp; 滚轮缩放 &nbsp;·&nbsp; 双击复位视角</div>
-
-      <!-- 语音字幕：投影时后排听不清也要看得见；本机没装中文语音时它就是唯一出口 -->
-      <div class="vsub" id="vsub" hidden>
-        <span class="vsub-dot"></span>
-        <span class="vsub-tx" id="vsubTx"></span>
-        <button class="vsub-x" id="vsubStop" title="停止朗读（Esc）">停止</button>
+      <!-- 点选信息卡 -->
+      <div class="pickcard panel" id="pickCard" aria-live="polite">
+        <div class="pc-h">
+          <b id="pcName">叶片</b>
+          <span class="pc-cat" id="pcCat">器官</span>
+          <button class="pc-x" id="pcX" title="Esc">×</button>
+        </div>
+        <div class="pc-body" id="pcBody"></div>
+        <div class="pc-foot" id="pcFoot"></div>
       </div>
     </section>
 
-    <aside class="side">
-
-      <div class="panel ledger">
-        <div class="p-cap">三量对账<span class="p-sub" id="ledgerSub">25 ℃ · 400 ppm · 21% O₂</span></div>
-        <div class="eqrow">
-          <div class="cell c-gross">
-            <div class="cv" id="vGross">0.0</div>
-            <div class="cl">总光合</div>
-          </div>
-          <div class="op">−</div>
-          <div class="cell c-resp">
-            <div class="cv" id="vResp">0.0</div>
-            <div class="cl">呼吸</div>
-          </div>
-          <div class="op">=</div>
-          <div class="cell c-net">
-            <div class="cv" id="vNet">0.0</div>
-            <div class="cl">净光合</div>
-          </div>
-        </div>
-        <div class="unit-line">单位：μmol CO₂ · m⁻² · s⁻¹</div>
-        <div class="split-line" id="vRespSub">其中根茎呼吸 0.5（只呼吸、不光合）</div>
-        <div class="bipolar">
-          <div class="bp-track"><div class="bp-zero"></div><div class="bp-fill" id="bpFill"></div></div>
-          <div class="bp-lab"><span>净 &lt; 0</span><span class="bp-zero-lab">0</span><span>净 &gt; 0</span></div>
-        </div>
-        <div class="ledger-note" id="ledgerNote">拖动光强，看三个量的关系</div>
+    <!-- ⑥ 右栏：中控台 -->
+    <aside class="right panel" id="rightPanel">
+      <div class="ph">
+        <span class="ph-t">中控台</span>
+        <span class="ph-s">拖一个滑块，看全局的代价</span>
       </div>
 
-      <div class="panel chartp">
-        <div class="p-cap">
-          光强 — 速率曲线
-          <span class="p-sub" id="chartSub">实线 净光合 &nbsp; 虚线 总光合</span>
+      <div class="rscroll">
+        <div class="ro-head">
+          <span>整株读数</span>
+          <span class="ro-u" id="roScope">μmol·s⁻¹·株⁻¹</span>
         </div>
-        <canvas id="chart"></canvas>
-        <div class="recstrip">
-          <div class="rec-head">
-            <span class="rec-title">实验记录</span>
-            <span class="rec-count" id="recCount">0 组</span>
-            <button class="rec-btn" id="btnRecord" title="记录此刻的读数（R）">记录此刻</button>
-            <button class="rec-btn ghost" id="btnRecClear" title="清空记录">清空</button>
-          </div>
-          <div class="rec-body" id="recBody">
-            <div class="rec-empty">拖到一个光强，点「记录此刻」存一组数据。<br>实测点会标在曲线上——曲线不是画出来的，是测出来的。</div>
-          </div>
+        <div class="ro-row">
+          <div class="readout"><b id="roGross">—</b><span>总光合</span></div>
+          <div class="readout"><b id="roResp">—</b><span>呼吸</span></div>
+          <div class="readout"><b id="roNet">—</b><span>净光合</span></div>
         </div>
-        <div class="chart-foot" id="chartFoot">曲线随拖动逐步生成</div>
-      </div>
 
-      <div class="panel taskp" id="taskPanel" hidden>
-        <div class="p-cap">探究任务<span class="p-sub">点开逐条完成</span></div>
-        <div class="tasklist" id="taskList"></div>
-      </div>
+        <div class="sliders" id="sliders"></div>
 
-      <!-- 化学式抽屉：默认折叠，展开后内部滚动。
-           口径按人教版 2019 必修 1：光合的还原氢写 NADPH（旧教材作 [H]），
-           呼吸统一写 [H]；能量只给 2870 / 1161 两个数字，不写 ATP 个数。 -->
-      <div class="panel chemp" id="chemPanel">
-        <button class="chem-head" id="btnChem" aria-expanded="false" aria-controls="chemBody">
-          <span class="chem-t">化学式与能量流</span>
-          <span class="p-sub" id="chemHint">点开看</span>
-        </button>
-        <div class="chem-body" id="chemBody" hidden>
+        <div class="mini">
+          <div class="mini-h"><span>光响应曲线</span><span class="mini-m" id="miniMarks"></span></div>
+          <canvas id="miniC" width="620" height="186"></canvas>
+        </div>
 
-          <div class="cg">
-            <div class="cg-h">一 · 光合作用总反应</div>
-            <div class="fml">6CO<sub>2</sub> + 6H<sub>2</sub>O
-              <span class="arw">光能·叶绿体</span>
-              C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> + 6O<sub>2</sub></div>
-            <div class="cnote">把水写全的式子：6CO<sub>2</sub> + 12H<sub>2</sub>O →
-              C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> + 6O<sub>2</sub> + 6H<sub>2</sub>O。
-              它说明 <b>O₂ 里的氧全部来自水</b>，葡萄糖里的氧来自 CO<sub>2</sub>。</div>
-          </div>
+        <div class="presets" id="presets"></div>
 
-          <div class="cg">
-            <div class="cg-h">二 · 光合的两个阶段</div>
-            <div class="csub">光反应 · 类囊体薄膜上</div>
-            <div class="fml">H<sub>2</sub>O <span class="arw">光能、色素</span>
-              NADPH（即 [H]） + O<sub>2</sub></div>
-            <div class="fml">ADP + Pi <span class="arw">光能</span> ATP</div>
-            <div class="csub">暗反应 · 叶绿体基质中</div>
-            <div class="fml">CO<sub>2</sub> + C<sub>5</sub> <span class="arw">酶</span> 2C<sub>3</sub></div>
-            <div class="fml">2C<sub>3</sub> + NADPH + ATP <span class="arw">酶</span>
-              (CH<sub>2</sub>O) + C<sub>5</sub></div>
-            <div class="cnote">光反应把 <b>NADPH 和 ATP</b> 交给暗反应；暗反应把 ADP、Pi 和
-              NADP<sup>+</sup> 还回去。所以"暗反应不直接需要光"不等于"没有光也能长久进行"——
-              停了光反应，它很快就没原料了。</div>
-          </div>
-
-          <div class="cg">
-            <div class="cg-h">三 · 有氧呼吸三个阶段（还原氢写作 [H]）</div>
-            <div class="csub">① 细胞质基质</div>
-            <div class="fml">C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> <span class="arw">酶</span>
-              2 丙酮酸 + 4[H] + 少量能量</div>
-            <div class="csub">② 线粒体基质</div>
-            <div class="fml">2 丙酮酸 + 6H<sub>2</sub>O <span class="arw">酶</span>
-              6CO<sub>2</sub> + 20[H] + 少量能量</div>
-            <div class="csub">③ 线粒体内膜</div>
-            <div class="fml">24[H] + 6O<sub>2</sub> <span class="arw">酶</span>
-              12H<sub>2</sub>O + 大量能量</div>
-            <div class="fml sum">C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> + 6O<sub>2</sub> + 6H<sub>2</sub>O
-              <span class="arw">酶</span> 6CO<sub>2</sub> + 12H<sub>2</sub>O + 能量</div>
-            <div class="cnote">只有<b>第三阶段</b>消耗 O<sub>2</sub>。O<sub>2</sub> 的作用是接受 [H] 生成水，
-              不是直接去和葡萄糖反应。CO<sub>2</sub> 只在第二阶段产生。</div>
-          </div>
-
-          <div class="cg">
-            <div class="cg-h">四 · 能量去哪了</div>
-            <div class="fml">1 mol 葡萄糖彻底氧化分解 → 释放 <b>2870 kJ</b></div>
-            <div class="cnote">其中 <b>1161 kJ 储存在 ATP 中</b>，其余以热能散失。
-              教材不要求记 ATP 的个数，只要求记住这两个数字和"大部分以热能形式散失"。</div>
-          </div>
-
-          <div class="cg">
-            <div class="cg-h">五 · 无氧呼吸（作对照）</div>
-            <div class="fml">C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> <span class="arw">酶</span>
-              2C<sub>3</sub>H<sub>6</sub>O<sub>3</sub>（乳酸） + 少量能量</div>
-            <div class="fml">C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> <span class="arw">酶</span>
-              2C<sub>2</sub>H<sub>5</sub>OH + 2CO<sub>2</sub> + 少量能量</div>
-            <div class="cnote">无氧呼吸只在<b>第一阶段</b>产生少量 ATP，有机物分解不彻底。</div>
-          </div>
-
-          <div class="cg last">
-            <div class="cg-h">六 · 和本页模型的关系</div>
-            <div class="cnote">
-              · 本模型只算<b>有氧呼吸</b>，不计无氧呼吸；ATP 只作过程示意，不标个数。<br>
-              · 光合与呼吸<b>同时进行、互不停歇</b>。曲线上的"净光合"只是两者相减的净结果：
-              <b>净积累 / 净消耗 / 恰好抵消</b>，不是"一个开、一个关"。<br>
-              · 光强为 0 时总光合为 0、呼吸不为 0；这与"光合一停呼吸就停"是两件事。
-            </div>
-          </div>
-
+        <div class="struct">
+          <div class="mini-h"><span>器官速查</span><span class="mini-m">点一下 = 看读数</span></div>
+          <div class="stlist" id="stList"></div>
         </div>
       </div>
-
     </aside>
-  </main>
+  </div>
 
-  <section class="controls" id="controls">
-    <div class="ctl ctl-light">
-      <div class="ctl-top"><label>光照强度</label><span class="kbd">主变量</span></div>
-      <div class="ctl-body">
-        <input type="range" id="sldLight" min="0" max="2000" step="5" value="800">
-        <output id="outLight">800 <i>μmol·m⁻²·s⁻¹</i></output>
-      </div>
+  <!-- ⑦ 底栏 ------------------------------------------------------------ -->
+  <footer class="foot panel">
+    <button class="btn" id="prev">‹ 上一步</button>
+    <div class="fp">
+      <span class="fpos" id="footPos">第 1 / 9 步</span>
+      <span class="decl">示意声明：植株与箱体为示意、非真实比例；速率为课件设定值（以单株计），时程已放慢；快捷键 ← → 翻步 · 1-9 跳步 · H/J 折栏 · F 影院 · R 复位</span>
     </div>
-
-    <div class="ctl ctl-temp" id="ctlTemp">
-      <div class="ctl-top"><label>温度</label></div>
-      <div class="ctl-body" id="tempWrap">
-        <input type="range" id="sldTemp" min="10" max="40" step="1" value="25">
-        <output id="outTemp">25 <i>℃</i></output>
-      </div>
-      <div class="pills" id="tempPills">
-        <button data-t="15">15 ℃</button>
-        <button data-t="25" class="on">25 ℃</button>
-        <button data-t="35">35 ℃</button>
-      </div>
-    </div>
-
-    <div class="ctl ctl-lab">
-      <div class="ctl-top"><label>CO₂ 浓度</label></div>
-      <div class="ctl-body">
-        <input type="range" id="sldCO2" min="150" max="1200" step="10" value="400">
-        <output id="outCO2">400 <i>ppm</i></output>
-      </div>
-    </div>
-
-    <div class="ctl ctl-lab">
-      <div class="ctl-top"><label>O₂ 浓度</label></div>
-      <div class="ctl-body">
-        <input type="range" id="sldO2" min="5" max="50" step="1" value="21">
-        <output id="outO2">21 <i>%</i></output>
-      </div>
-    </div>
-
-    <div class="ctl ctl-plant">
-      <div class="ctl-top"><label>计入根茎呼吸</label></div>
-      <div class="ctl-body">
-        <div class="toggle" id="tgWhole">
-          <button data-v="leaf">只看叶片</button>
-          <button data-v="whole" class="on">整株</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="ctl ctl-preset">
-      <div class="ctl-top"><label>快捷位置</label><span class="kbd">空格复位</span></div>
-      <div class="pills presets">
-        <button data-p="0">黑暗</button>
-        <button data-p="weak">弱光</button>
-        <button data-p="comp">光补偿点</button>
-        <button data-p="sat">光饱和</button>
-      </div>
-    </div>
-  </section>
-
-  <section class="lessonbar" id="lessonbar">
-    <div class="lb-nav">
-      <button class="lb-btn" id="qPrev" title="上一题（←）">‹</button>
-      <div class="lb-stage" id="qStage">环节一</div>
-      <button class="lb-btn" id="qNext" title="下一题（→）">›</button>
-    </div>
-    <div class="lb-mid">
-      <div class="lb-q">
-        <span class="lb-qno" id="qNo">Q1 / 16</span>
-        <span class="lb-qtext" id="qText">拖动下方光强滑杆，观察这株植物体内三条流量的变化。</span>
-      </div>
-      <div class="lb-state">
-        <span class="nr-tag" id="nrTag">当前状态</span>
-        <span class="lb-state-tx" id="nrText">拖动下方光强滑杆，观察这株植物体内三条流量的变化。</span>
-      </div>
-    </div>
-    <div class="lb-chips" id="deriveChips">
-      <span class="chip" data-step="1">① 净光合 可直接测</span>
-      <span class="chip" data-step="2">② 呼吸 由黑暗态测得</span>
-      <span class="chip" data-step="3">③ 总光合 = 净 + 呼吸</span>
-    </div>
-  </section>
-
+    <button class="btn pri" id="next">下一步 ›</button>
+  </footer>
 </div>
 
-<div class="help-mask" id="helpMask" hidden>
-  <div class="help-box">
-    <h3>怎么用这个页面</h3>
-    <ul>
-      <li><b>← →</b>：切换问题串（Q1–Q16，和讲义逐题对应）。上课就按方向键往下讲。</li>
-      <li><b>↑ ↓</b>：调光强，按住 Shift 走大步。投影时不用去够滑杆。</li>
-      <li><b>R</b>：记录此刻的读数，实测点会标到曲线上。</li>
-      <li><b>C</b>：展开 / 收起「化学式与能量流」（光合与呼吸的方程式、三阶段、2870 kJ 与 1161 kJ）。</li>
-      <li><b>V</b>：开 / 关语音讲解。开启后，切题、记录、展开化学式都会自动朗读对应的一小段；<b>Esc</b> 立即停。</li>
-      <li><b>H</b>：纯净模式，隐藏全部面板只留植株；再按一次恢复。</li>
-      <li><b>F</b>：全屏。<b>空格</b>：回到教材标准状态（800、25 ℃、400 ppm、21% O₂）。</li>
-      <li><b>拖动 / 滚轮 / 双击</b>：旋转 / 缩放 / 回到初始视角。</li>
-      <li><b>演示态 / 探究态</b>：演示态只留光强与温度三档；探究态开放四个变量并给出任务卡。</li>
-    </ul>
-    <button id="helpClose">知道了</button>
+<!-- 影院模式的胶囊：唯一保留的导航 -->
+<div id="cineBar" class="cinebar">
+  <span class="cb-n" id="cbName">第 1 步</span>
+  <button class="vbtn" id="cbExit">退出影院 Esc</button>
+</div>
+
+<!-- 考核 -->
+<div id="quizWrap" class="qwrap">
+  <div class="qbox panel">
+    <div class="q-h">
+      <span class="q-k">考核</span>
+      <span class="q-prog" id="qProg">第 1 / 3 题</span>
+      <button class="pc-x" id="qX">×</button>
+    </div>
+    <div class="q-body" id="qBody"></div>
+    <div class="q-foot">
+      <button class="btn" id="qPrev">上一题</button>
+      <button class="btn pri" id="qNext">下一题</button>
+    </div>
   </div>
 </div>
 
-<script>
-/*__THREE__*/
-</script>
-<script>
-/*__APP__*/
-</script>
+<div id="toast" class="toast"></div>
+
+<!-- 唯一数据源：九步脚本、器官口径、考核题全部在这里 -->
+<!--__DATA__-->
+
+<script>/*__THREE__*/</script>
+<script>/*__APP__*/</script>
 </body>
 </html>

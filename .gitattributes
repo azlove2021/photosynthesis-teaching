@@ -1,0 +1,8 @@
+# 产物与源码一律 LF：本地 build.py 的输出、git 里的 blob、GitHub Pages 上线的字节
+# 三者保持完全一致，才能用 md5 直接核对「重新构建 == 已交付」。
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.docx binary
+*.pdf binary

@@ -1,0 +1,444 @@
+*{box-sizing:border-box;margin:0;padding:0}
+
+/* =========================================================
+   配色：白 + 蓝（教学投影）
+   三条语义色全站统一，和 3D 粒子流、曲线图、图例完全对齐：
+     总光合 = 绿 / 呼吸 = 琥珀 / 净光合 = 蓝 / 负值 = 红
+   浅底上所有"半透明白"的叠加全部换成"淡蓝灰"，
+   否则在白卡片上等于没画。
+   ========================================================= */
+:root{
+  --bg0:#f7fbff;
+  --bg1:#eaf2fa;
+  --panel:#ffffff;
+  --panel2:#f6fafe;
+  --line:#dbe6f1;
+  --line2:#c0d5e8;
+  --tx:#16232f;
+  --tx2:#4d6377;
+  --tx3:#8397a8;
+  --green:#0f9b64;
+  --green-d:#0a6d47;
+  --amber:#c8820e;
+  --amber-d:#8a5a0a;
+  --cyan:#12799c;
+  --blue:#1f6fd0;
+  --blue-d:#17539b;
+  --red:#d9453a;
+  --mono:ui-monospace,"Cascadia Mono",Consolas,"SF Mono",Menlo,monospace;
+  --sans:"PingFang SC","Microsoft YaHei","Hiragino Sans GB","Source Han Sans SC",system-ui,sans-serif;
+  --sh1:0 1px 2px rgba(22,35,47,.05);
+  --sh2:0 6px 18px rgba(22,35,47,.08);
+}
+
+html,body{height:100%}
+body{
+  background:
+    radial-gradient(1100px 620px at 18% -10%, #ffffff 0%, rgba(255,255,255,0) 62%),
+    linear-gradient(178deg,#fbfdff 0%,#f0f6fc 46%,#e7f0f9 100%);
+  color:var(--tx);
+  font-family:var(--sans);
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+
+.app{
+  height:100vh;
+  display:grid;
+  grid-template-rows:auto minmax(0,1fr) auto auto;
+  gap:10px;
+  padding:12px 14px 12px;
+}
+
+/* ---------- header ---------- */
+.hd{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 2px}
+.hd-title h1{font-size:19px;font-weight:600;letter-spacing:.4px;color:#0f2032}
+.hd-title p{font-size:11.5px;color:var(--tx3);margin-top:3px;letter-spacing:.3px}
+.hd-tools{display:flex;align-items:center;gap:8px}
+
+.seg{display:flex;background:#eef4fa;border:1px solid var(--line);border-radius:9px;padding:3px}
+.seg button{
+  border:0;background:transparent;color:var(--tx2);font-family:var(--sans);
+  font-size:12.5px;padding:5px 14px;border-radius:6px;cursor:pointer;transition:.18s;
+}
+.seg button.on{background:#fff;color:var(--blue);box-shadow:0 1px 2px rgba(22,35,47,.10),0 0 0 1px rgba(31,111,208,.22) inset;font-weight:600}
+.seg button:hover:not(.on){color:var(--tx)}
+
+.ghost-btn{
+  border:1px solid var(--line);background:#fff;color:var(--tx2);
+  font-family:var(--sans);font-size:12.5px;padding:6px 13px;border-radius:9px;cursor:pointer;transition:.18s;
+  box-shadow:var(--sh1);
+}
+.ghost-btn:hover{color:var(--blue);border-color:var(--line2);background:#f7fbff}
+
+/* ---------- main ---------- */
+.main{display:grid;grid-template-columns:minmax(0,1.52fr) minmax(360px,1fr);gap:12px;min-height:0}
+
+.stage{
+  position:relative;border-radius:16px;overflow:hidden;
+  border:1px solid var(--line);
+  background:radial-gradient(900px 560px at 50% 16%, #ffffff 0%, #f2f8fd 58%, #e6f0f9 100%);
+  box-shadow:var(--sh2);
+}
+#gl{display:block;width:100%;height:100%}
+
+.hud{
+  position:absolute;background:rgba(255,255,255,.93);border:1px solid var(--line);border-radius:11px;
+  padding:9px 12px;box-shadow:var(--sh2);backdrop-filter:blur(6px);
+}
+.hud-cap{font-size:10.5px;color:var(--tx3);letter-spacing:.8px;margin-bottom:6px}
+.hud-sensor{top:12px;left:12px;min-width:172px}
+/* 右上角的实验条件卡：纯净投影时会话面板全部隐藏，
+   学生仍要看得见"现在是什么光强、多少度" */
+.hud-cond{top:12px;right:12px;min-width:150px}
+/* 右上角暖光：光照方向的可读提示，画在画布之上、UI 之下。
+   透明度由 JS 跟随光强变化——拉到 0 时这一角完全冷掉。 */
+.stage-glow{
+  /* 跟着吊灯走：灯在画面顶部中央，这层暖雾就必须落在顶部中央，
+     否则会和三维场景里的灯"两个方向发光"，一眼就假。
+     它只做屏幕空间的一层薄雾，不参与出图，也不承担"光强"的读数。 */
+  position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:radial-gradient(circle at 50% 3%, rgba(255,206,140,.46), rgba(255,206,140,0) 31%);
+  transition:opacity .4s linear;
+}
+.hud{z-index:3}
+.crow{display:flex;align-items:baseline;gap:5px;margin-top:3px}
+.ck{font-size:11px;color:var(--tx2);width:26px}
+.cv2{font-family:var(--mono);font-size:16px;font-weight:600;color:#1b3a56;font-variant-numeric:tabular-nums}
+.cu{font-size:9.5px;color:var(--tx3)}
+.srow{display:flex;align-items:baseline;gap:5px;margin-top:3px}
+.sname{font-size:11px;color:var(--tx2);width:26px}
+.sval{font-family:var(--mono);font-size:17px;font-weight:600;color:var(--cyan);font-variant-numeric:tabular-nums}
+.sunit{font-size:10px;color:var(--tx3)}
+.strend{font-size:10.5px;margin-left:auto;color:var(--tx3)}
+.strend.up{color:var(--amber)}
+.strend.down{color:var(--green)}
+
+.hud-legend{bottom:12px;left:12px;display:flex;gap:12px;padding:7px 12px;border-radius:9px}.lg{display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--tx2)}
+.lg i{width:7px;height:7px;border-radius:50%;display:block}
+
+.stage-hint{
+  position:absolute;bottom:14px;right:14px;font-size:10.5px;color:var(--tx3);
+  background:rgba(255,255,255,.85);padding:5px 10px;border-radius:8px;border:1px solid var(--line);
+}
+
+/* ---------- 语音讲解 ---------- */
+/* 讲解开着时顶栏按钮要有明确的"正在工作"状态，否则老师不知道下一句会不会突然响 */
+.ghost-btn.on{
+  background:rgba(31,111,208,.10);color:var(--blue-d);border-color:rgba(31,111,208,.45);
+  font-weight:600;box-shadow:0 0 0 3px rgba(31,111,208,.08);
+}
+.ghost-btn.speaking::after{
+  content:"";display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:var(--blue);margin-left:6px;vertical-align:middle;
+  animation:vpulse 1.1s ease-in-out infinite;
+}
+@keyframes vpulse{0%,100%{opacity:.35;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+
+/* 字幕常驻在舞台底部：投影时后排听不清、或本机没装中文语音，都靠它 */
+.vsub{
+  position:absolute;left:50%;bottom:52px;transform:translateX(-50%);
+  z-index:5;display:flex;align-items:flex-start;gap:8px;
+  width:max-content;max-width:min(720px,84%);
+  background:rgba(255,255,255,.965);border:1px solid var(--line2);border-radius:12px;
+  padding:10px 13px;box-shadow:0 10px 26px rgba(16,32,48,.14);
+  backdrop-filter:blur(6px);
+  animation:vsubin .18s ease-out;
+}
+@keyframes vsubin{from{opacity:0;transform:translateX(-50%) translateY(6px)}to{opacity:1;transform:translateX(-50%)}}
+.vsub-dot{
+  width:7px;height:7px;border-radius:50%;background:var(--blue);
+  margin-top:6px;flex:0 0 auto;animation:vpulse 1.1s ease-in-out infinite;
+}
+.vsub-tx{font-size:13.5px;line-height:1.6;color:var(--tx);letter-spacing:.2px}
+.vsub-x{
+  border:0;background:#eef4fa;color:var(--tx2);font-family:var(--sans);
+  font-size:11px;padding:3px 8px;border-radius:6px;cursor:pointer;flex:0 0 auto;margin-top:1px;
+}
+.vsub-x:hover{background:#e2ecf7;color:var(--blue-d)}
+
+/* ---------- side ---------- */
+/* 四行：对账 / 曲线（伸缩）/ 任务（探究态才有）/ 化学式抽屉（常驻，折叠时一行） */
+.side{display:grid;grid-template-rows:auto minmax(0,1fr) auto auto;gap:10px;min-height:0}
+.panel{
+  border:1px solid var(--line);border-radius:14px;background:var(--panel);
+  padding:12px 14px;min-height:0;box-shadow:var(--sh1);
+}
+.p-cap{font-size:11.5px;color:var(--tx2);letter-spacing:.5px;display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.p-sub{font-size:11.5px;color:var(--tx3);letter-spacing:0}
+
+.eqrow{display:flex;align-items:flex-end;justify-content:space-between;gap:4px;margin-top:9px}
+.cell{flex:1;text-align:center}
+.cv{font-family:var(--mono);font-size:27px;font-weight:600;line-height:1.05;font-variant-numeric:tabular-nums;transition:color .2s}
+.cl{font-size:11.5px;color:var(--tx3);margin-top:3px}
+.c-gross .cv{color:var(--green)}
+.c-resp .cv{color:var(--amber)}
+.c-net .cv{color:var(--blue)}
+.c-net.neg .cv{color:var(--red)}
+.op{font-size:17px;color:var(--tx3);padding-bottom:15px}
+
+.unit-line{font-size:10.5px;color:var(--tx3);margin-top:6px;text-align:center;letter-spacing:.2px}
+
+/* 口径切换的唯一定量证据：曲线位移只有 0.47，看图看不出来，只能给数 */
+.split-line{
+  font-size:11px;color:var(--amber-d);margin-top:4px;text-align:center;line-height:1.45;
+  background:rgba(200,130,14,.09);border-radius:6px;padding:2px 8px;
+}
+.split-line.leaf{color:var(--blue-d);background:rgba(31,111,208,.075)}
+
+.bipolar{margin-top:10px}
+.bp-track{position:relative;height:9px;border-radius:5px;background:#e9f0f7;overflow:hidden;box-shadow:inset 0 1px 2px rgba(22,35,47,.06)}
+.bp-zero{position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(22,35,47,.28);z-index:2}
+.bp-fill{position:absolute;top:0;bottom:0;left:50%;width:0;background:var(--blue);border-radius:4px;transition:background .2s}
+.bp-lab{display:flex;justify-content:space-between;font-size:9.5px;color:var(--tx3);margin-top:3px}
+
+.ledger-note{font-size:11.5px;color:var(--tx3);margin-top:7px;text-align:center;min-height:14px}
+
+.chartp{display:flex;flex-direction:column;padding-bottom:8px}
+#chart{flex:1;width:100%;min-height:150px;display:block;margin-top:6px}
+.chart-foot{font-size:11.5px;color:var(--tx3);text-align:center;padding-top:2px}
+
+.taskp{max-height:190px;overflow:auto}
+.tasklist{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.task{
+  display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border-radius:9px;
+  background:var(--panel2);border:1px solid transparent;cursor:pointer;transition:.18s;
+}
+.task:hover{background:#eef6fd;border-color:var(--line2)}
+.task .tn{font-family:var(--mono);font-size:12px;color:var(--blue);padding-top:1px}
+.task .tt{font-size:12.5px;color:var(--tx);line-height:1.45}
+.task .td{font-size:11.5px;color:var(--tx3);line-height:1.5;margin-top:2px}
+.task.done{opacity:.55}
+.task.done .tn{color:var(--tx3)}
+
+/* ---------- 化学式抽屉 ----------
+   折叠时只占一行标题；展开后**浮在曲线上方**而不是把曲线挤扁——
+   右栏只有一列，曲线是伸缩行，若让抽屉参与排布，投影时会把曲线压到
+   最小高度甚至裁掉一截。做成上浮的抽屉，开合不影响任何一块布局。 */
+.chemp{position:relative;padding:0;overflow:visible;transition:border-color .16s,box-shadow .16s}
+.chemp.open{border-color:var(--line2);box-shadow:var(--sh2)}
+.chem-head{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;
+  background:transparent;border:0;cursor:pointer;padding:10px 14px;font-family:var(--sans);
+  border-radius:14px;transition:background .16s;
+}
+.chem-head:hover{background:#f7fbff}
+.chem-t{font-size:12.5px;color:var(--tx2);letter-spacing:.5px;display:flex;align-items:center;gap:7px}
+.chem-t::before{
+  content:"";width:6px;height:6px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 0 3px rgba(15,155,100,.13);
+}
+.chem-body{
+  position:absolute;left:0;right:0;bottom:calc(100% + 10px);z-index:6;
+  background:var(--panel);border:1px solid var(--line2);border-radius:14px;
+  box-shadow:0 20px 44px rgba(16,32,48,.18);
+  padding:12px 15px 14px;max-height:min(56vh,440px);overflow-y:auto;overscroll-behavior:contain;
+  animation:chemIn .17s ease-out;
+}
+@keyframes chemIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.cg{padding:7px 0;border-bottom:1px dashed var(--line)}
+.cg:first-child{padding-top:2px}
+.cg.last{border-bottom:0;padding-bottom:2px}
+.cg-h{font-size:12px;font-weight:600;color:var(--blue-d);letter-spacing:.4px;margin-bottom:4px}
+.csub{font-size:10.5px;color:var(--tx3);margin:4px 0 1px;letter-spacing:.3px}
+.fml{
+  font-family:var(--mono);font-size:12.5px;color:var(--tx);line-height:1.72;
+  letter-spacing:.1px;white-space:nowrap;overflow-x:auto;overflow-y:hidden;
+  scrollbar-width:none;
+}
+.fml::-webkit-scrollbar{display:none}
+.fml b{color:var(--amber-d);font-weight:600}
+.fml sub{font-size:.72em}
+.fml.sum{
+  margin-top:5px;padding-top:5px;border-top:1px solid var(--line);
+  color:var(--blue-d);font-weight:600;
+}
+/* 反应箭头：条件写在箭头上方，箭头本身用 CSS 画，避免字体缺字。
+   底部留 7px 是关键——中文全角字在 line-height:1 时会溢出内容盒，
+   线压在 padding 里就会被字压穿（第一版就是这样，箭头横穿"光能·叶绿体"）。 */
+.arw{
+  display:inline-block;position:relative;margin:0 9px 1px;padding:0 2px 8px;
+  font-family:var(--sans);font-size:9.5px;line-height:1.3;color:#7b8fa1;
+  white-space:nowrap;vertical-align:1px;text-align:center;min-width:52px;
+}
+.arw::before{
+  content:"";position:absolute;left:0;right:4px;bottom:2px;
+  border-bottom:1px solid #a8c0d6;
+}
+.arw::after{
+  content:"";position:absolute;right:0;bottom:0;width:0;height:0;
+  border-left:4.5px solid #a8c0d6;
+  border-top:2.5px solid transparent;border-bottom:2.5px solid transparent;
+}
+.cnote{font-size:11px;color:var(--tx2);line-height:1.52;margin-top:4px}
+.cnote b{color:var(--tx);font-weight:600}
+
+/* ---------- controls ---------- */
+.controls{
+  display:flex;gap:10px;align-items:stretch;
+  border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:10px 14px;
+  box-shadow:var(--sh1);
+}
+.ctl{display:flex;flex-direction:column;justify-content:center;gap:5px;min-width:0}
+.ctl-light{flex:2.2}
+.ctl-temp{flex:1.5}
+.ctl-lab{flex:1.2}
+.ctl-plant{flex:1.1}
+.ctl-preset{flex:1.7}
+.ctl-top{display:flex;align-items:baseline;justify-content:space-between;gap:6px}
+.ctl-top label{font-size:11px;color:var(--tx2);letter-spacing:.4px}
+.kbd{font-size:9.5px;color:var(--tx3);border:1px solid var(--line);border-radius:4px;padding:1px 5px;background:#f7fbff}
+.ctl-body{display:flex;align-items:center;gap:9px}
+.ctl-body output{
+  font-family:var(--mono);font-size:13px;color:var(--tx);min-width:96px;text-align:right;
+  font-variant-numeric:tabular-nums;white-space:nowrap;
+}
+.ctl-body output i{font-size:9.5px;color:var(--tx3);font-style:normal}
+
+input[type=range]{
+  -webkit-appearance:none;appearance:none;flex:1;height:20px;background:transparent;cursor:pointer;min-width:0;
+}
+input[type=range]::-webkit-slider-runnable-track{
+  height:5px;border-radius:3px;
+  background:linear-gradient(90deg,#2f86e0 0%,#2f86e0 var(--p,40%),#dfe8f2 var(--p,40%),#dfe8f2 100%);
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:#ffffff;margin-top:-4px;
+  box-shadow:0 0 0 1.5px #2f86e0,0 1px 4px rgba(31,111,208,.35);transition:transform .12s;
+}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(1.18)}
+#sldTemp::-webkit-slider-runnable-track{background:linear-gradient(90deg,#4aa8e0 0%,#eebc46 50%,#e2653f 100%)}
+#sldCO2::-webkit-slider-runnable-track{background:linear-gradient(90deg,#d9c3a0 0%,#c8820e 100%)}
+#sldO2::-webkit-slider-runnable-track{background:linear-gradient(90deg,#a9c8dd 0%,#3b93e0 100%)}
+
+.pills{display:flex;gap:5px}
+.pills button,.toggle button{
+  border:1px solid var(--line);background:#fff;color:var(--tx2);
+  font-family:var(--sans);font-size:11px;padding:4px 9px;border-radius:7px;cursor:pointer;transition:.16s;white-space:nowrap;
+}
+.pills button:hover,.toggle button:hover{color:var(--blue);border-color:var(--line2)}
+.pills button.on,.toggle button.on{background:rgba(31,111,208,.10);color:var(--blue-d);border-color:rgba(31,111,208,.42);font-weight:600}
+.presets{flex-wrap:wrap}
+.toggle{display:flex;gap:4px}
+
+/* ---------- 课堂导航条（问题串） ---------- */
+.lessonbar{
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center;
+  border:1px solid var(--line);border-radius:14px;
+  background:linear-gradient(90deg,rgba(31,111,208,.075),#ffffff 34%,#ffffff);
+  padding:10px 16px;box-shadow:var(--sh1);
+}
+.lb-nav{display:flex;align-items:center;gap:7px}
+.lb-btn{
+  width:30px;height:32px;border-radius:8px;border:1px solid var(--line);
+  background:#fff;color:var(--tx2);font-size:17px;line-height:1;
+  cursor:pointer;transition:.16s;font-family:var(--sans);
+}
+.lb-btn:hover{color:var(--blue);border-color:rgba(31,111,208,.4);background:#f4faff}
+.lb-btn:disabled{opacity:.32;cursor:default}
+.lb-stage{
+  font-size:10.5px;color:var(--blue-d);letter-spacing:.7px;white-space:nowrap;
+  border:1px solid rgba(31,111,208,.26);border-radius:7px;padding:4px 9px;
+  background:rgba(31,111,208,.06);
+}
+.lb-mid{min-width:0}
+.lb-q{display:flex;align-items:baseline;gap:9px}
+.lb-qno{
+  font-family:var(--mono);font-size:12px;font-weight:600;color:var(--blue);
+  border:1px solid rgba(31,111,208,.38);border-radius:6px;padding:1px 7px;white-space:nowrap;
+  background:rgba(31,111,208,.05);
+}
+.lb-qtext{
+  font-size:clamp(14px,1.08vw,17px);font-weight:600;color:#12202c;line-height:1.35;letter-spacing:.2px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.lb-state{display:flex;align-items:baseline;gap:8px;margin-top:6px;min-width:0}
+.lb-state-tx{
+  font-size:13.5px;color:var(--tx2);line-height:1.5;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.lb-chips{display:flex;flex-direction:column;gap:4px}
+.chip{
+  font-size:12px;color:var(--tx2);border:1px dashed #c0d5e8;border-radius:20px;
+  padding:2.5px 11px;white-space:nowrap;transition:.3s;letter-spacing:.2px;background:#fff;
+}
+.chip.on{
+  color:var(--blue-d);border-style:solid;border-color:rgba(31,111,208,.45);
+  background:rgba(31,111,208,.10);font-weight:600;
+}
+
+/* ---------- 实验记录 ---------- */
+.recstrip{margin-top:7px;border-top:1px solid var(--line);padding-top:7px;flex:0 0 auto}
+.rec-head{display:flex;align-items:center;gap:6px}
+.rec-title{font-size:11.5px;color:var(--tx2);letter-spacing:.5px}
+.rec-count{font-family:var(--mono);font-size:11px;color:var(--tx3);margin-right:auto}
+.rec-btn{
+  border:1px solid rgba(31,111,208,.35);background:rgba(31,111,208,.08);color:var(--blue-d);
+  font-family:var(--sans);font-size:11.5px;padding:3px 10px;border-radius:6px;cursor:pointer;transition:.16s;
+}
+.rec-btn:hover{background:rgba(31,111,208,.16)}
+.rec-btn.ghost{border-color:var(--line);background:#fff;color:var(--tx3)}
+.rec-btn.ghost:hover{color:var(--tx2);background:#f4f9fe}
+.rec-body{max-height:76px;overflow:auto;margin-top:5px}
+.recstrip.empty .rec-body,.recstrip.empty .rec-btn.ghost{display:none}
+.rec-empty{font-size:11px;color:var(--tx3);line-height:1.55}
+.rec-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11.5px}
+.rec-table th{
+  font-weight:500;color:var(--tx3);text-align:right;padding:2px 4px;
+  border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;
+}
+.rec-table th:first-child,.rec-table td:first-child{text-align:left}
+.rec-table td{color:var(--tx2);text-align:right;padding:2px 4px;border-bottom:1px dashed #eaf0f6}
+.rec-table td.ng{color:var(--red)}
+.rec-table td.po{color:var(--blue)}
+
+/* ---------- 纯净投影模式 ---------- */
+.pure .hd-tools,.pure .side,.pure .controls,.pure .lessonbar,.pure .hud-legend,.pure .stage-hint{display:none}
+.pure .app{padding:0}
+.pure .main{grid-template-columns:1fr}
+.pure .stage{border-radius:0;border:0;box-shadow:none}
+
+/* ---------- narration（保留旧类，供兼容） ---------- */
+.narration{
+  display:flex;align-items:center;gap:12px;
+  border:1px solid var(--line);border-radius:14px;
+  background:linear-gradient(90deg,rgba(31,111,208,.07),#ffffff 42%,#ffffff);
+  padding:11px 16px;min-height:52px;
+}
+.nr-tag{
+  font-size:10.5px;color:#fff;background:var(--green);border-radius:6px;padding:2px 8px;
+  font-weight:600;letter-spacing:.5px;white-space:nowrap;flex:0 0 auto;
+}
+.nr-tag.neutral{background:var(--blue)}
+.nr-tag.warn{background:var(--amber)}
+.nr-tag.neg{background:var(--red)}
+.nr-text{font-size:13px;color:var(--tx);line-height:1.55;letter-spacing:.2px}
+
+/* ---------- help ---------- */
+.help-mask{position:fixed;inset:0;background:rgba(16,32,48,.38);display:flex;align-items:center;justify-content:center;z-index:99;backdrop-filter:blur(2px)}
+.help-mask[hidden]{display:none}
+[hidden]{display:none !important}
+.help-box{
+  width:min(560px,88vw);background:#fff;border:1px solid var(--line2);border-radius:16px;
+  padding:22px 24px;box-shadow:0 24px 60px rgba(16,32,48,.22);
+}
+.help-box h3{font-size:15px;font-weight:600;margin-bottom:12px;color:#0f2032}
+.help-box ul{list-style:none;display:flex;flex-direction:column;gap:9px}
+.help-box li{font-size:12px;color:var(--tx2);line-height:1.6;padding-left:14px;position:relative}
+.help-box li::before{content:"";position:absolute;left:0;top:8px;width:5px;height:5px;border-radius:50%;background:var(--blue)}
+.help-box b{color:var(--tx);font-weight:600}
+.help-box button{
+  margin-top:18px;width:100%;padding:9px;border-radius:9px;border:0;cursor:pointer;
+  background:var(--blue);color:#fff;font-family:var(--sans);font-size:13px;font-weight:600;
+}
+
+@media (max-width:1180px){
+  .main{grid-template-columns:1fr;grid-template-rows:minmax(0,1.3fr) minmax(0,1fr)}
+  .side{grid-template-rows:auto auto;grid-template-columns:1fr 1fr}
+  .chartp{grid-column:span 1}
+  .taskp{grid-column:span 2}
+  .chemp{grid-column:span 2}
+  .controls{flex-wrap:wrap}
+  .ctl{flex:1 1 180px}
+}
